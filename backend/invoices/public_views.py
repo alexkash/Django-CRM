@@ -71,7 +71,7 @@ class PublicInvoiceView(APIView):
         """Get invoice by public token"""
         _resolve_org_context(token, "invoice")
         invoice = Invoice.objects.filter(
-            public_token=token, public_link_enabled=True
+            public_token=token, public_link_enabled=True, issuer__isnull=True
         ).first()
 
         if not invoice:
@@ -183,7 +183,7 @@ class PublicInvoicePDFView(APIView):
         """Download invoice PDF by public token"""
         _resolve_org_context(token, "invoice")
         invoice = Invoice.objects.filter(
-            public_token=token, public_link_enabled=True
+            public_token=token, public_link_enabled=True, issuer__isnull=True
         ).first()
 
         if not invoice:

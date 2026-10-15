@@ -633,7 +633,37 @@ class Invoice(AssignableMixin, ArchivedDocument, BaseModel):
         The subtotal is the sum of each line's ``net_amount`` (after the line's
         own discount); see ``LineAmounts``.
         """
-        line_items = self.line_items.all() if self.pk else []
+        line_items = list(self.line_items.all()) if self.pk else []
+        if self.issuer_id:
+            from invoices.billing.money import LineInput, calculate_ua_totals
+
+            values = calculate_ua_totals(
+                [LineInput(item.quantity, item.unit_price) for item in line_items],
+                self.vat_status or self.issuer.vat_status,
+                Decimal(str(self.tax_rate)),
+            )
+            self.subtotal, self.tax_amount, self.total_amount = (
+                values.subtotal,
+                values.tax_amount,
+                values.total_amount,
+            )
+            self.discount_amount = Decimal(0)
+            for item, amount in zip(line_items, values.lines):
+                InvoiceLineItem.objects.filter(pk=item.pk, org_id=self.org_id).update(
+                    tax_rate=self.tax_rate,
+                    subtotal=amount.net,
+                    tax_amount=amount.vat,
+                    total=amount.gross,
+                    discount_amount=0,
+                )
+                item.tax_rate, item.subtotal, item.tax_amount, item.total = (
+                    self.tax_rate,
+                    amount.net,
+                    amount.vat,
+                    amount.gross,
+                )
+            self.amount_due = self.total_amount - self.amount_paid
+            return
         self.subtotal = sum((item.net_amount for item in line_items), Decimal("0"))
 
         # Calculate discount, never more than the subtotal: the serializers
@@ -828,6 +858,26 @@ class Payment(BaseModel):
         if not self.org_id and self.invoice_id:
             self.org_id = self.invoice.org_id
 
+        if self.invoice_id and self.invoice.issuer_id:
+            with transaction.atomic():
+                invoice = Invoice.objects.select_for_update().get(pk=self.invoice_id)
+                if (
+                    not invoice.issued_at
+                    or invoice.status == "Cancelled"
+                    or self.org_id != invoice.org_id
+                ):
+                    raise ValidationError(
+                        "Для оплати потрібен виписаний рахунок цієї організації."
+                    )
+                available = invoice.amount_due
+                if not self._state.adding:
+                    available += Payment.objects.get(pk=self.pk).amount
+                amount = Decimal(str(self.amount))
+                if not amount.is_finite() or amount <= 0 or amount > available:
+                    raise ValidationError("Некоректна сума оплати.")
+                super().save(*args, **kwargs)
+                self.update_invoice_payment(invoice)
+            return
         super().save(*args, **kwargs)
 
         # Update invoice payment totals
@@ -880,7 +930,13 @@ class Payment(BaseModel):
                 # A deleted payment left no payments: back to the unpaid state.
                 # An invoice that was never sent goes back to Draft.
                 invoice.status = (
-                    "Draft"
+                    (
+                        "Overdue"
+                        if invoice.due_date and invoice.due_date < timezone.localdate()
+                        else "Sent"
+                    )
+                    if invoice.issuer_id and invoice.issued_at
+                    else "Draft"
                     if not invoice.sent_at
                     else "Overdue"
                     if invoice.due_date and invoice.due_date < timezone.localdate()

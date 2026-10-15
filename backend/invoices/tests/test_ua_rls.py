@@ -118,3 +118,31 @@ def test_related_billing_rows_are_invisible_cross_org(admin_client, org_a, org_b
         assert not DocumentSequence.objects.filter(entity=issuer).exists()
         assert not ServiceAct.objects.filter(pk=act.pk).exists()
         assert not ServiceActLine.objects.filter(pk=line.pk).exists()
+
+
+def test_issued_billing_rows_are_invisible_cross_org(admin_client, org_a, org_b):
+    if connection.vendor != "postgresql":
+        pytest.skip("PostgreSQL required")
+    from common.testing import rls_org
+    from invoices.models import (
+        DocumentSequence,
+        LegalEntityBankAccount,
+        ServiceAct,
+        ServiceActLine,
+    )
+    from invoices.tests.ua_helpers import act_payload, issued_invoice
+
+    inv = issued_invoice(admin_client, org_a)
+    act = admin_client.post(
+        "/api/invoices/billing/acts/", act_payload(inv), format="json"
+    )
+    assert act.status_code == 201, act.content
+    with rls_org(org_b):
+        assert not LegalEntityBankAccount.objects.filter(
+            entity_id=inv["issuer"]["id"]
+        ).exists()
+        assert not DocumentSequence.objects.filter(
+            entity_id=inv["issuer"]["id"]
+        ).exists()
+        assert not ServiceAct.objects.filter(pk=act.data["id"]).exists()
+        assert not ServiceActLine.objects.filter(act_id=act.data["id"]).exists()

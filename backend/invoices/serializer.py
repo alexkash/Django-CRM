@@ -1,6 +1,7 @@
 import re
 from decimal import Decimal
 
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -16,6 +17,8 @@ from common.utils import validate_upload_size
 from contacts.access import visible_contacts_qs
 from contacts.models import Contact
 from contacts.serializer import ContactPickerSerializer
+from invoices.billing.invoice_validation import UA_WRITE_FIELDS, validate_ua_invoice
+from invoices.billing.serializers import BankAccountSerializer, LegalEntitySerializer
 from invoices.models import (
     Estimate,
     EstimateLineItem,
@@ -67,6 +70,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "unit",
             "description",
             "sku",
             "price",
@@ -102,6 +106,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             "name",
+            "unit",
             "description",
             "sku",
             "price",
@@ -313,6 +318,7 @@ class InvoiceLineItemSerializer(serializers.ModelSerializer):
             "product",
             "product_name",
             "name",
+            "unit",
             "description",
             "quantity",
             "unit_price",
@@ -401,6 +407,7 @@ class InvoiceLineItemCreateSerializer(LineAmountsMixin, serializers.ModelSeriali
         fields = (
             "product",
             "name",
+            "unit",
             "description",
             "quantity",
             "unit_price",
@@ -717,6 +724,8 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         ``validate_amount`` already rejects every amount as above the balance.
         """
         invoice = self.context.get("invoice")
+        if invoice is not None and invoice.issuer_id and not invoice.issued_at:
+            raise serializers.ValidationError("Спочатку випишіть рахунок.")
         if invoice is not None and invoice.status == "Cancelled":
             raise serializers.ValidationError(
                 "Cannot record a payment against a cancelled invoice."
@@ -752,10 +761,36 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     contact_name = serializers.SerializerMethodField()
     line_items_count = serializers.SerializerMethodField()
 
+    closure = serializers.SerializerMethodField()
+
+    def get_closure(self, obj):
+        if not obj.issuer_id:
+            return None
+        from invoices.billing.services import get_closure_summary
+
+        return get_closure_summary(obj)
+
+    issuer_name = serializers.SerializerMethodField()
+
+    def get_issuer_name(self, obj):
+        return (
+            obj.print_snapshot.get("seller", {}).get("legal_name", "")
+            if obj.issued_at
+            else (obj.issuer.legal_name if obj.issuer_id else "")
+        )
+
+    issuer = LegalEntitySerializer(read_only=True)
+
     class Meta:
         model = Invoice
         fields = (
             "id",
+            "closure",
+            "issuer_name",
+            "issuer",
+            "issued_at",
+            "service_period_start",
+            "service_period_end",
             "invoice_number",
             "invoice_title",
             "status",
@@ -804,10 +839,57 @@ class InvoiceSerializer(serializers.ModelSerializer):
     is_overdue = serializers.BooleanField(read_only=True)
     public_url = serializers.CharField(read_only=True)
 
+    closure = serializers.SerializerMethodField()
+
+    def get_closure(self, obj):
+        if not obj.issuer_id:
+            return None
+        from invoices.billing.services import get_closure_summary
+
+        return get_closure_summary(obj)
+
+    issuer_name = serializers.SerializerMethodField()
+
+    def get_issuer_name(self, obj):
+        return (
+            obj.print_snapshot.get("seller", {}).get("legal_name", "")
+            if obj.issued_at
+            else (obj.issuer.legal_name if obj.issuer_id else "")
+        )
+
+    issuer = LegalEntitySerializer(read_only=True)
+
+    printed_parties = serializers.SerializerMethodField()
+
+    def get_printed_parties(self, obj):
+        if not obj.issued_at:
+            return None
+        return {
+            key: obj.print_snapshot.get(key, {})
+            for key in ("seller", "bank", "customer", "payer")
+        }
+
+    bank_account = BankAccountSerializer(read_only=True)
+
     class Meta:
         model = Invoice
         fields = (
+            "printed_parties",
+            "bank_account",
+            "payer_id",
+            "contract_number",
+            "contract_date",
+            "order_reference",
+            "place_of_issue",
+            "vat_status",
+            "draft_parties",
             "id",
+            "closure",
+            "issuer_name",
+            "issuer",
+            "issued_at",
+            "service_period_start",
+            "service_period_end",
             "invoice_number",
             "invoice_title",
             "status",
@@ -899,12 +981,17 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
         write_only=True, required=False, allow_null=True
     )
 
+    issuer_id = serializers.UUIDField(required=False, allow_null=True)
+    bank_account_id = serializers.UUIDField(required=False, allow_null=True)
+    payer_id = serializers.UUIDField(required=False, allow_null=True)
+
     # Line items for bulk creation
     line_items = InvoiceLineItemCreateSerializer(many=True, required=False)
 
     class Meta:
         model = Invoice
         fields = (
+            *UA_WRITE_FIELDS,
             "invoice_title",
             "status",
             # CRM Integration (IDs)
@@ -1012,6 +1099,7 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """Cross-field validation"""
+        attrs = validate_ua_invoice(self, attrs)
         refuse_issued_amount_changes(attrs, self.instance)
         account_id = attrs.get("account_id")
         contact_id = attrs.get("contact_id")
@@ -1028,6 +1116,7 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
         validate_document_discount(attrs, self.instance)
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         line_items_data = validated_data.pop("line_items", [])
 

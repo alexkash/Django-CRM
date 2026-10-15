@@ -1,10 +1,12 @@
 from django.urls import include, path
 
 from invoices import api_views, export_views
+from invoices.billing.views import UAInvoiceIssueView
 
 app_name = "api_invoices"
 
 urlpatterns = [
+    path("<uid:pk>/issue/", UAInvoiceIssueView.as_view()),
     path("billing/", include("invoices.billing.urls")),
     # ==========================================================================
     # INVOICES

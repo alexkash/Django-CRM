@@ -302,6 +302,14 @@ jobs:
           cd "$RUNNER_TEMP/neutral"
           "$RUNNER_TEMP/pkgenv/bin/python" -c "import django; django.setup(); from django.template.loader import get_template; [get_template(n) for n in ('magic_link_email.html', 'magic_link_code_email.html', 'root_email_template_new.html', 'healthz.html', 'assigned_to/leads_assigned.html', 'opportunity/goal_milestone.html', 'csat/survey_email.html')]; print('templates resolve from the installed package')"
 
+      - name: Render packaged Ukrainian billing documents
+        env:
+          DJANGO_SETTINGS_MODULE: crm.test_settings
+          SECRET_KEY: package-render-test-key-not-for-deployment
+        run: |
+          cd "$RUNNER_TEMP/neutral"
+          "$RUNNER_TEMP/pkgenv/bin/python" "$GITHUB_WORKSPACE/ops/check_billing_package.py"
+
   frontend-checks:
     runs-on: ubuntu-latest
 
