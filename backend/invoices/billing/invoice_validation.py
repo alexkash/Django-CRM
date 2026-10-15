@@ -51,7 +51,11 @@ def validate_ua_invoice(serializer, attrs):
             }
         )
     if not issuer_id:
-        if any(k in attrs for k in UA_WRITE_FIELDS if k != "issuer_id"):
+        if any(
+            attrs.get(k) not in (None, "", {})
+            for k in UA_WRITE_FIELDS
+            if k != "issuer_id"
+        ):
             raise serializers.ValidationError({"issuer_id": "Оберіть нашу компанію."})
         return attrs
     if old and old.issued_at:

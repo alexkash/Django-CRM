@@ -116,3 +116,65 @@ def test_existing_generic_invoice_cannot_change_document_mode(
     assert invoice.invoice_number == number
     assert invoice.public_link_enabled is True
     assert admin_client.get(url).data["invoice"]["issuer"] is None
+
+
+@pytest.mark.parametrize("phase", ["create", "update_draft", "update_sent"])
+def test_generic_clients_can_send_empty_optional_ua_fields(admin_client, org_a, phase):
+    from invoices.billing.invoice_validation import UA_WRITE_FIELDS
+    from invoices.models import Invoice
+
+    body = invoice_payload(admin_client, org_a)
+    for field in UA_WRITE_FIELDS:
+        body.pop(field, None)
+    empty = {
+        "issuer_id": None,
+        "bank_account_id": None,
+        "payer_id": None,
+        "service_period_start": None,
+        "service_period_end": None,
+        "contract_date": None,
+        "contract_number": "",
+        "order_reference": "",
+        "place_of_issue": "",
+        "draft_parties": {},
+    }
+    if phase == "create":
+        response = admin_client.post("/api/invoices/", {**body, **empty}, format="json")
+        assert response.status_code == 201, response.content
+        invoice = Invoice.objects.get(pk=response.data["invoice"]["id"])
+    else:
+        created = admin_client.post("/api/invoices/", body, format="json")
+        assert created.status_code == 201, created.content
+        invoice = Invoice.objects.get(pk=created.data["invoice"]["id"])
+        if phase == "update_sent":
+            invoice.status = "Sent"
+            invoice.save()
+        before = (invoice.invoice_number, invoice.status)
+        response = admin_client.put(
+            f"/api/invoices/{invoice.pk}/", empty, format="json"
+        )
+        assert response.status_code == 200, response.content
+        invoice.refresh_from_db()
+        assert (invoice.invoice_number, invoice.status) == before
+    assert invoice.issuer_id is None and invoice.issued_at is None
+    assert invoice.invoice_number.startswith("INV-")
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"contract_number": "Meaningful"},
+        {"service_period_start": "2027-01-01"},
+        {"draft_parties": {"customer": {"legal_name": "Other"}}},
+    ],
+)
+def test_generic_still_rejects_meaningful_ua_particulars_without_issuer(
+    admin_client, org_a, extra
+):
+    from invoices.billing.invoice_validation import UA_WRITE_FIELDS
+
+    body = invoice_payload(admin_client, org_a)
+    for field in UA_WRITE_FIELDS:
+        body.pop(field, None)
+    response = admin_client.post("/api/invoices/", {**body, **extra}, format="json")
+    assert response.status_code == 400, response.content
