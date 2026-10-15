@@ -64,9 +64,15 @@
     opacity: 0.45;
     cursor: default;
   }
+  /* Keep controls clear of the shell's fixed New deal button. */
+  @media (max-width: 768px) {
+    .list-pagination {
+      padding-right: 78px;
+    }
+  }
   @media (max-width: 600px) {
     .list-pagination {
-      padding: 14px 16px 24px;
+      padding: 14px 78px 24px 16px;
     }
     .controls {
       width: 100%;
