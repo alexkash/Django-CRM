@@ -219,8 +219,8 @@ def project_relations(ctx):
                 )
                 edge(row, ft, d.get(fk) if fk else key, tt, d.get(tk), role)
             if d.get("parent_id"):
-                tt = MODULES.get(d.get("parent_type"))
-                if tt:
+                tt = MODULES.get(d.get("parent_type"), "unknown")
+                if d.get("parent_type"):
                     edge(row, table, key, tt, d["parent_id"], "parent")
             if table == "emails_beans":
                 edge(

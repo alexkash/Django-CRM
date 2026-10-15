@@ -4,7 +4,7 @@ from collections import defaultdict
 from email.utils import getaddresses
 
 from accounts.models import AccountEmail
-from legacy.models import LegacyRelation
+from legacy.models import LegacyRecord, LegacyRelation
 
 from .contracts import source_time
 from .fields import email
@@ -88,6 +88,16 @@ def project_communications(ctx):
             created_by_id=ctx.actor(d),
             updated_by_id=ctx.updater(d),
             **headers,
+        )
+        LegacyRecord.objects.filter(
+            pk=ctx.record_id("emails", row["source_id"])
+        ).update(
+            search_text=" ".join(
+                str(value)
+                for data in (d, body)
+                for value in data.values()
+                if isinstance(value, (str, int))
+            )
         )
         message = ctx.write("emails", row, obj)
         matched = set()

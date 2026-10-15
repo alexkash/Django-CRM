@@ -118,20 +118,7 @@ class ImportContext:
                         "sugarfeed": "change",
                     }.get(table, "audit" if table.endswith("_audit") else "record")
                     search = " ".join(
-                        str(data.get(k) or "")
-                        for k in [
-                            "name",
-                            "subject",
-                            "first_name",
-                            "last_name",
-                            "email_address",
-                            "description",
-                            "description_html",
-                            "from_addr",
-                            "to_addrs",
-                            "cc_addrs",
-                            "bcc_addrs",
-                        ]
+                        str(v) for v in data.values() if isinstance(v, (str, int))
                     )
                     create.append(
                         LegacyRecord(
