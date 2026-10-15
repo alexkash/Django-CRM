@@ -1,0 +1,703 @@
+{
+  "accounts": {
+    "category": "history"
+  },
+  "accounts_audit": {
+    "category": "history"
+  },
+  "accounts_bugs": {
+    "category": "history"
+  },
+  "accounts_cases": {
+    "category": "history"
+  },
+  "accounts_contacts": {
+    "category": "history"
+  },
+  "accounts_cstm": {
+    "category": "history"
+  },
+  "accounts_opportunities": {
+    "category": "history"
+  },
+  "acl_actions": {
+    "category": "history"
+  },
+  "acl_roles": {
+    "category": "history"
+  },
+  "acl_roles_actions": {
+    "category": "history"
+  },
+  "acl_roles_users": {
+    "category": "history"
+  },
+  "address_book": {
+    "category": "history"
+  },
+  "alerts": {
+    "category": "sealed"
+  },
+  "am_projecttemplates": {
+    "category": "history"
+  },
+  "am_projecttemplates_audit": {
+    "category": "history"
+  },
+  "am_projecttemplates_contacts_1_c": {
+    "category": "history"
+  },
+  "am_projecttemplates_project_1_c": {
+    "category": "history"
+  },
+  "am_projecttemplates_users_1_c": {
+    "category": "history"
+  },
+  "am_tasktemplates": {
+    "category": "history"
+  },
+  "am_tasktemplates_am_projecttemplates_c": {
+    "category": "history"
+  },
+  "am_tasktemplates_audit": {
+    "category": "history"
+  },
+  "aobh_businesshours": {
+    "category": "history"
+  },
+  "aod_index": {
+    "category": "sealed"
+  },
+  "aod_index_audit": {
+    "category": "sealed"
+  },
+  "aod_indexevent": {
+    "category": "sealed"
+  },
+  "aod_indexevent_audit": {
+    "category": "sealed"
+  },
+  "aok_knowledge_base_categories": {
+    "category": "history"
+  },
+  "aok_knowledge_base_categories_audit": {
+    "category": "history"
+  },
+  "aok_knowledgebase": {
+    "category": "history"
+  },
+  "aok_knowledgebase_audit": {
+    "category": "history"
+  },
+  "aok_knowledgebase_categories": {
+    "category": "history"
+  },
+  "aop_case_events": {
+    "category": "history"
+  },
+  "aop_case_events_audit": {
+    "category": "history"
+  },
+  "aop_case_updates": {
+    "category": "history"
+  },
+  "aop_case_updates_audit": {
+    "category": "history"
+  },
+  "aor_charts": {
+    "category": "history"
+  },
+  "aor_conditions": {
+    "category": "history"
+  },
+  "aor_fields": {
+    "category": "history"
+  },
+  "aor_reports": {
+    "category": "history"
+  },
+  "aor_reports_audit": {
+    "category": "history"
+  },
+  "aor_scheduled_reports": {
+    "category": "history"
+  },
+  "aos_contracts": {
+    "category": "history"
+  },
+  "aos_contracts_audit": {
+    "category": "history"
+  },
+  "aos_contracts_documents": {
+    "category": "history"
+  },
+  "aos_invoices": {
+    "category": "history"
+  },
+  "aos_invoices_audit": {
+    "category": "history"
+  },
+  "aos_invoices_cstm": {
+    "category": "history"
+  },
+  "aos_line_item_groups": {
+    "category": "history"
+  },
+  "aos_line_item_groups_audit": {
+    "category": "history"
+  },
+  "aos_pdf_templates": {
+    "category": "history"
+  },
+  "aos_pdf_templates_audit": {
+    "category": "history"
+  },
+  "aos_product_categories": {
+    "category": "history"
+  },
+  "aos_product_categories_audit": {
+    "category": "history"
+  },
+  "aos_products": {
+    "category": "history"
+  },
+  "aos_products_audit": {
+    "category": "history"
+  },
+  "aos_products_quotes": {
+    "category": "history"
+  },
+  "aos_products_quotes_audit": {
+    "category": "history"
+  },
+  "aos_quotes": {
+    "category": "history"
+  },
+  "aos_quotes_aos_invoices_c": {
+    "category": "history"
+  },
+  "aos_quotes_audit": {
+    "category": "history"
+  },
+  "aos_quotes_os_contracts_c": {
+    "category": "history"
+  },
+  "aos_quotes_project_c": {
+    "category": "history"
+  },
+  "aow_actions": {
+    "category": "history"
+  },
+  "aow_conditions": {
+    "category": "history"
+  },
+  "aow_processed": {
+    "category": "history"
+  },
+  "aow_processed_aow_actions": {
+    "category": "history"
+  },
+  "aow_workflow": {
+    "category": "history"
+  },
+  "aow_workflow_audit": {
+    "category": "history"
+  },
+  "bugs": {
+    "category": "history"
+  },
+  "bugs_audit": {
+    "category": "history"
+  },
+  "calls": {
+    "category": "history"
+  },
+  "calls_contacts": {
+    "category": "history"
+  },
+  "calls_leads": {
+    "category": "history"
+  },
+  "calls_reschedule": {
+    "category": "history"
+  },
+  "calls_reschedule_audit": {
+    "category": "history"
+  },
+  "calls_users": {
+    "category": "history"
+  },
+  "campaign_log": {
+    "category": "history"
+  },
+  "campaign_trkrs": {
+    "category": "history"
+  },
+  "campaigns": {
+    "category": "history"
+  },
+  "campaigns_audit": {
+    "category": "history"
+  },
+  "cases": {
+    "category": "history"
+  },
+  "cases_audit": {
+    "category": "history"
+  },
+  "cases_bugs": {
+    "category": "history"
+  },
+  "cases_cstm": {
+    "category": "history"
+  },
+  "config": {
+    "category": "sealed"
+  },
+  "contacts": {
+    "category": "history"
+  },
+  "contacts_audit": {
+    "category": "history"
+  },
+  "contacts_bugs": {
+    "category": "history"
+  },
+  "contacts_cases": {
+    "category": "history"
+  },
+  "contacts_cstm": {
+    "category": "history"
+  },
+  "contacts_users": {
+    "category": "history"
+  },
+  "cron_remove_documents": {
+    "category": "history"
+  },
+  "currencies": {
+    "category": "history"
+  },
+  "custom_fields": {
+    "category": "history"
+  },
+  "document_revisions": {
+    "category": "history"
+  },
+  "documents": {
+    "category": "history"
+  },
+  "documents_accounts": {
+    "category": "history"
+  },
+  "documents_bugs": {
+    "category": "history"
+  },
+  "documents_cases": {
+    "category": "history"
+  },
+  "documents_contacts": {
+    "category": "history"
+  },
+  "documents_opportunities": {
+    "category": "history"
+  },
+  "eapm": {
+    "category": "history",
+    "exclude_columns": [
+      "password",
+      "consumer_secret",
+      "oauth_token",
+      "oauth_secret"
+    ]
+  },
+  "email_addr_bean_rel": {
+    "category": "history"
+  },
+  "email_addresses": {
+    "category": "history",
+    "exclude_columns": [
+      "confirm_opt_in_token"
+    ]
+  },
+  "email_addresses_audit": {
+    "category": "history"
+  },
+  "email_cache": {
+    "category": "history"
+  },
+  "email_marketing": {
+    "category": "history"
+  },
+  "email_marketing_prospect_lists": {
+    "category": "history"
+  },
+  "email_templates": {
+    "category": "history"
+  },
+  "emailman": {
+    "category": "history"
+  },
+  "emails": {
+    "category": "history"
+  },
+  "emails_beans": {
+    "category": "history"
+  },
+  "emails_email_addr_rel": {
+    "category": "history"
+  },
+  "emails_text": {
+    "category": "history"
+  },
+  "favorites": {
+    "category": "sealed"
+  },
+  "fields_meta_data": {
+    "category": "history"
+  },
+  "folders": {
+    "category": "history"
+  },
+  "folders_rel": {
+    "category": "history"
+  },
+  "folders_subscriptions": {
+    "category": "history"
+  },
+  "fp_event_locations": {
+    "category": "history"
+  },
+  "fp_event_locations_audit": {
+    "category": "history"
+  },
+  "fp_event_locations_fp_events_1_c": {
+    "category": "history"
+  },
+  "fp_events": {
+    "category": "history"
+  },
+  "fp_events_audit": {
+    "category": "history"
+  },
+  "fp_events_contacts_c": {
+    "category": "history"
+  },
+  "fp_events_fp_event_delegates_1_c": {
+    "category": "history"
+  },
+  "fp_events_fp_event_locations_1_c": {
+    "category": "history"
+  },
+  "fp_events_leads_1_c": {
+    "category": "history"
+  },
+  "fp_events_prospects_1_c": {
+    "category": "history"
+  },
+  "import_maps": {
+    "category": "history"
+  },
+  "inbound_email": {
+    "category": "history",
+    "exclude_columns": [
+      "email_password"
+    ]
+  },
+  "inbound_email_autoreply": {
+    "category": "history"
+  },
+  "inbound_email_cache_ts": {
+    "category": "history"
+  },
+  "jjwg_address_cache": {
+    "category": "history"
+  },
+  "jjwg_address_cache_audit": {
+    "category": "history"
+  },
+  "jjwg_areas": {
+    "category": "history"
+  },
+  "jjwg_areas_audit": {
+    "category": "history"
+  },
+  "jjwg_maps": {
+    "category": "history"
+  },
+  "jjwg_maps_audit": {
+    "category": "history"
+  },
+  "jjwg_maps_jjwg_areas_c": {
+    "category": "history"
+  },
+  "jjwg_maps_jjwg_markers_c": {
+    "category": "history"
+  },
+  "jjwg_markers": {
+    "category": "history"
+  },
+  "jjwg_markers_audit": {
+    "category": "history"
+  },
+  "job_queue": {
+    "category": "history"
+  },
+  "leads": {
+    "category": "history"
+  },
+  "leads_audit": {
+    "category": "history"
+  },
+  "leads_cstm": {
+    "category": "history"
+  },
+  "linked_documents": {
+    "category": "history"
+  },
+  "meetings": {
+    "category": "history",
+    "exclude_columns": [
+      "password"
+    ]
+  },
+  "meetings_contacts": {
+    "category": "history"
+  },
+  "meetings_cstm": {
+    "category": "history"
+  },
+  "meetings_leads": {
+    "category": "history"
+  },
+  "meetings_users": {
+    "category": "history"
+  },
+  "notes": {
+    "category": "history"
+  },
+  "oauth2clients": {
+    "category": "sealed",
+    "exclude_columns": [
+      "secret"
+    ]
+  },
+  "oauth2tokens": {
+    "category": "sealed",
+    "exclude_columns": [
+      "token_is_revoked",
+      "token_type",
+      "access_token_expires",
+      "access_token",
+      "refresh_token",
+      "refresh_token_expires"
+    ]
+  },
+  "oauth_consumer": {
+    "category": "sealed",
+    "exclude_columns": [
+      "c_secret"
+    ]
+  },
+  "oauth_nonce": {
+    "category": "sealed"
+  },
+  "oauth_tokens": {
+    "category": "sealed",
+    "exclude_columns": [
+      "secret",
+      "token_ts"
+    ]
+  },
+  "opportunities": {
+    "category": "history"
+  },
+  "opportunities_audit": {
+    "category": "history"
+  },
+  "opportunities_contacts": {
+    "category": "history"
+  },
+  "opportunities_cstm": {
+    "category": "history"
+  },
+  "outbound_email": {
+    "category": "sealed"
+  },
+  "outbound_email_audit": {
+    "category": "history"
+  },
+  "project": {
+    "category": "history"
+  },
+  "project_contacts_1_c": {
+    "category": "history"
+  },
+  "project_cstm": {
+    "category": "history"
+  },
+  "project_task": {
+    "category": "history"
+  },
+  "project_task_audit": {
+    "category": "history"
+  },
+  "project_users_1_c": {
+    "category": "history"
+  },
+  "projects_accounts": {
+    "category": "history"
+  },
+  "projects_bugs": {
+    "category": "history"
+  },
+  "projects_cases": {
+    "category": "history"
+  },
+  "projects_contacts": {
+    "category": "history"
+  },
+  "projects_opportunities": {
+    "category": "history"
+  },
+  "projects_products": {
+    "category": "history"
+  },
+  "prospect_list_campaigns": {
+    "category": "history"
+  },
+  "prospect_lists": {
+    "category": "history"
+  },
+  "prospect_lists_prospects": {
+    "category": "history"
+  },
+  "prospects": {
+    "category": "history"
+  },
+  "prospects_cstm": {
+    "category": "history"
+  },
+  "relationships": {
+    "category": "history"
+  },
+  "releases": {
+    "category": "history"
+  },
+  "reminders": {
+    "category": "history"
+  },
+  "reminders_invitees": {
+    "category": "history"
+  },
+  "roles": {
+    "category": "history"
+  },
+  "roles_modules": {
+    "category": "history"
+  },
+  "roles_users": {
+    "category": "history"
+  },
+  "saved_search": {
+    "category": "history"
+  },
+  "schedulers": {
+    "category": "sealed"
+  },
+  "securitygroups": {
+    "category": "history"
+  },
+  "securitygroups_acl_roles": {
+    "category": "history"
+  },
+  "securitygroups_audit": {
+    "category": "history"
+  },
+  "securitygroups_default": {
+    "category": "history"
+  },
+  "securitygroups_records": {
+    "category": "history"
+  },
+  "securitygroups_users": {
+    "category": "history"
+  },
+  "spots": {
+    "category": "history"
+  },
+  "sugarfeed": {
+    "category": "history"
+  },
+  "surveyquestionoptions": {
+    "category": "history"
+  },
+  "surveyquestionoptions_audit": {
+    "category": "history"
+  },
+  "surveyquestionoptions_surveyquestionresponses": {
+    "category": "history"
+  },
+  "surveyquestionresponses": {
+    "category": "history"
+  },
+  "surveyquestionresponses_audit": {
+    "category": "history"
+  },
+  "surveyquestions": {
+    "category": "history"
+  },
+  "surveyquestions_audit": {
+    "category": "history"
+  },
+  "surveyresponses": {
+    "category": "history"
+  },
+  "surveyresponses_audit": {
+    "category": "history"
+  },
+  "surveys": {
+    "category": "history"
+  },
+  "surveys_audit": {
+    "category": "history"
+  },
+  "tasks": {
+    "category": "history"
+  },
+  "templatesectionline": {
+    "category": "history"
+  },
+  "tracker": {
+    "category": "sealed"
+  },
+  "upgrade_history": {
+    "category": "sealed"
+  },
+  "user_preferences": {
+    "category": "sealed"
+  },
+  "users": {
+    "category": "history",
+    "exclude_columns": [
+      "user_hash",
+      "system_generated_password",
+      "pwd_last_changed"
+    ]
+  },
+  "users_feeds": {
+    "category": "history"
+  },
+  "users_last_import": {
+    "category": "sealed"
+  },
+  "users_password_link": {
+    "category": "history"
+  },
+  "users_signatures": {
+    "category": "history"
+  },
+  "vcals": {
+    "category": "sealed"
+  }
+}

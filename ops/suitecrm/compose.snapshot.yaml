@@ -1,0 +1,37 @@
+name: suitecrm-snapshot
+services:
+  database:
+    image: mariadb:10.11
+    restart: 'no'
+    env_file: snapshot.env
+    command: ['--event-scheduler=OFF', '--innodb-buffer-pool-size=96M', '--skip-log-bin']
+    volumes:
+      - snapshot_db:/var/lib/mysql
+    networks: [private]
+    mem_limit: 512m
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  exporter:
+    build:
+      context: .
+      dockerfile: Snapshot.Dockerfile
+    user: '1000:1000'
+    profiles: [export]
+    env_file: snapshot.env
+    environment:
+      SNAPSHOT_DB_HOST: database
+      SNAPSHOT_DB_USER: snapshot_reader
+    volumes:
+      - ${SNAPSHOT_DIR:?snapshot directory required}:/snapshot
+    networks: [private]
+    depends_on:
+      database:
+        condition: service_healthy
+networks:
+  private:
+    internal: true
+volumes:
+  snapshot_db:
