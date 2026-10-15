@@ -15,8 +15,8 @@ LEAD_STATUS = {
 }
 
 
-def _owned_config(ctx, model, kind, key, **fields):
-    pk = stable_id("configuration", kind + ":" + key)
+def _owned_config(ctx, model, identity_kind, key, **fields):
+    pk = stable_id("configuration", identity_kind + ":" + key)
     owned = ctx.source.metadata.setdefault("generated_objects", {})
     obj = model.objects.filter(pk=pk).first()
     if obj:
