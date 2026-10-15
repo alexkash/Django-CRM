@@ -13,9 +13,23 @@ from common.serializer import (
 )
 from contacts.access import visible_contacts_qs
 from contacts.serializer import ContactSerializer
+from invoices.billing.validators import BillingParticularsValidationMixin
 from opportunity.access import visible_deals_qs
 from opportunity.stages import stage_index
 from tasks.access import visible_tasks_qs
+
+ACCOUNT_BILLING_FIELDS = (
+    "legal_name",
+    "registration_code",
+    "vat_registration_number",
+    "legal_address",
+    "iban",
+    "bank_name",
+    "mfo",
+    "tax_system_text",
+    "signer_name",
+    "signer_title",
+)
 
 # Note: Removed unused serializer properties that were computed but never used by frontend:
 # - get_team_users, get_team_and_assigned_users, get_assigned_users_not_in_teams
@@ -128,6 +142,7 @@ class AccountSerializer(serializers.ModelSerializer):
         model = Account
         fields = (
             "id",
+            *ACCOUNT_BILLING_FIELDS,
             # Core Account Information
             "name",
             "email",
@@ -239,12 +254,15 @@ class EmailLogSerializer(serializers.ModelSerializer):
         fields = ["email", "contact", "is_sent"]
 
 
-class AccountWriteSerializer(serializers.ModelSerializer):
+class AccountWriteSerializer(
+    BillingParticularsValidationMixin, serializers.ModelSerializer
+):
     """Serializer for API documentation of Account write operations"""
 
     class Meta:
         model = Account
         fields = [
+            *ACCOUNT_BILLING_FIELDS,
             "name",
             "phone",
             "email",
@@ -261,7 +279,9 @@ class AccountWriteSerializer(serializers.ModelSerializer):
         ]
 
 
-class AccountCreateSerializer(serializers.ModelSerializer):
+class AccountCreateSerializer(
+    BillingParticularsValidationMixin, serializers.ModelSerializer
+):
     """Serializer for creating/updating Account data"""
 
     def __init__(self, *args, **kwargs):
@@ -301,6 +321,7 @@ class AccountCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = (
+            *ACCOUNT_BILLING_FIELDS,
             # Core Account Information
             "name",
             "email",

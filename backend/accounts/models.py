@@ -21,6 +21,17 @@ class Account(AssignableMixin, BaseModel):
     Based on Twenty CRM and Salesforce patterns
     """
 
+    legal_name = models.CharField(max_length=255, blank=True)
+    registration_code = models.CharField(max_length=10, blank=True)
+    vat_registration_number = models.CharField(max_length=30, blank=True)
+    legal_address = models.CharField(max_length=500, blank=True)
+    iban = models.CharField(max_length=29, blank=True)
+    bank_name = models.CharField(max_length=255, blank=True)
+    mfo = models.CharField(max_length=6, blank=True)
+    tax_system_text = models.CharField(max_length=500, blank=True)
+    signer_name = models.CharField(max_length=255, blank=True)
+    signer_title = models.CharField(max_length=150, blank=True)
+
     # Core Account Information
     name = models.CharField(_("Account Name"), max_length=255)
     email = models.EmailField(_("Email"), blank=True, null=True)
