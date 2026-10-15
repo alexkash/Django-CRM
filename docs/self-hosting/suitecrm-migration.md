@@ -8,7 +8,7 @@ Source: `164.92.244.103`, SuiteCRM 7.12.6. Destination: the existing `/opt/crm` 
 
 SQL dumps, exports, reports, metadata, credentials and customer files stay private on the server. Do not commit them, publish them or print their contents. Full SQL contains credentials that are deliberately absent from the web archive. The source app, its database, DNS, SSH and automations are not changed.
 
-`legacy` stores all exported business rows, original string IDs, deletion flags, typed values, relations and adaptation reasons. Native projections use deterministic UUIDv5 IDs and tracked fingerprints including M2M assignments. Deleted records stay in history. Historical mail never enters the delivery path. Incomplete invoices and quotes remain historical; no balances, payments or line items are invented. Original addresses, long phones and duplicate people remain inspectable. Missing product currencies stay unknown. The existing destination currency/settings and owner access are preserved.
+`legacy` stores all exported business rows, original string IDs, deletion flags, typed values, relations and adaptation reasons. Native projections use deterministic UUIDv5 IDs and tracked fingerprints including M2M assignments. Deleted records stay in history. Historical mail never enters the delivery path. Incomplete invoices and quotes remain historical; no balances, payments or line items are invented. Original addresses, long phones and duplicate people remain inspectable. Missing product currencies stay unknown; the catalogue explicitly displays “currency not recorded” without inventing USD or throwing a formatting error. The existing destination currency/settings and owner access are preserved.
 
 ## Prepare and rehearse
 
@@ -52,10 +52,38 @@ Existing owner login remains valid. SuiteCRM passwords, sessions and OAuth crede
 
 Three presentation/export edges were deferred by the final review: product history has no native catalogue link (the two products remain available in the catalogue); a contact headline may name an unclassified deal alongside the correct open-pipeline amount; and `users_password_link` is currently categorized as history. That authentication table contains zero rows in this exact approved snapshot, so no reset token is imported. Seal it before using the exporter for a later snapshot. The deployment gate accepts only the exact approved snapshot hash.
 
-Full-data authenticated checks succeeded for both roles. During concurrent import, the selected ordinary member’s all-parent permission queries took approximately 13–18 seconds, while administrator reads after startup took under one second. This is a known history-read performance limitation, not permission relaxation. Final live acceptance records timings separately.
+Full-data authenticated checks succeeded for both roles. PostgreSQL defaults caused native-page timeouts after import. Controlled tests selected `work_mem=32MB`, `max_parallel_workers_per_gather=0`, and `jit=off`; 64MB did not materially improve results. The database memory limit is now 1GB (previously 512MB), with the settings persisted in Compose and applied by configuration reload. RLS, roles and data are unchanged. Ordinary-user endpoints took approximately 7–20 seconds in isolated checks; the live email list took 25.7 seconds with concurrent browser traffic. Administrator lists took 2.3–5.4 seconds in live checks. Further permission-query optimization remains deferred.
 
 ## Completion evidence
 
-The final server reports identify snapshot, table coverage, native projections, original orphan links, adaptations and file hashes. `verified=true` requires zero unexplained differences. Final counts and backup/restore evidence are recorded after the actual destination apply; a staging-only run is not completion.
+Actual destination apply completed on 2026-10-15, batch `4e3eaa0f-5ec7-4f1a-bccc-669a7e8e8ccb`. Apply and independent verification both report `verified=true`: all 221 source tables accounted for, 201,605 historical business rows, 21,701 primary native projections, 73,283 total tracked projections, and all 17 files (4,445,894 bytes). Every payload, relation, projection fingerprint and attachment hash reconciled: zero mismatches, zero conflicts, zero new orphan links. Existing source orphan references remain explicit: 73,298 missing parents and 17,079 deleted parents; these are pre-existing graph references, not newly lost records.
+
+| Active source category | Result |
+| --- | ---: |
+| Companies | 4,812 native accounts |
+| Contacts | 8,177 native contacts |
+| Leads | 3,399 native leads |
+| Deals | 3,064 native opportunities |
+| Products | 2 native products, currency unknown |
+| Users | 7 tracked users and 7 profiles; owner preserved |
+| Emails | 2,234 historical native email records plus source evidence |
+| Calls / meetings | 4,230 / 163 in protected history |
+| Original tasks | 6 completed tasks |
+| Planned calls / meetings | 179 followup tasks |
+| Activities | 51,396 native activity records |
+| Historical invoices / quotes | 442 / 2; no native financial totals invented |
+| Uploads | 17 private files; unidentified associations remain admin-only |
+
+Backend image: `crm-backend:bf3d3ab66ccd`; frontend image: `crm-frontend:8ab48b19be15` (the additional accepted NULL-currency rendering fix). Original images remain available. Full maintenance ran approximately 15:02–16:04 UTC; source HTTP remained 200. The pre-existing destination-record baseline, including owner password hash and membership, passed unchanged.
+
+Private apply/reconciliation reports and recovery evidence: `/opt/crm/migration/deploy-bf3d3ab66ccd/`. The initial post-import backup restored and reconciled before traffic resumed. A final backup including PostgreSQL tuning is `/opt/crm/backups/crm-20261015T162819Z.tar.gz`; its separate restore/reconciliation passed, with evidence under `restore-final/` in that directory. No customer payloads or credentials are included in this repository.
+
+Validation: final backend regression 7,858 passed, 62 skipped (including 44 PostgreSQL-only tests), coverage 95.29%; real PostgreSQL 65 legacy and 44 PostgreSQL-specific tests passed under a non-superuser/non-bypass role. Frontend 1,122 tests passed, Svelte check had zero errors/warnings, production build passed; lint passed with eight existing warnings. Export tests and the actual rollback-owner/read/write/FORCE-RLS/ALTER regression passed. Fresh independent whole-branch review had one Important ownership finding, fixed with an observed failing-then-passing PostgreSQL regression. Three review Minors and ordinary-user latency are disclosed above.
+
+Actual full-snapshot scheduled-job checks produced zero mail, queue dispatch or HTTP calls and no financial/delivery mutations. Live workers answered inspection; native Invoice, Payment, AccountEmailLog and WebhookDelivery counts remained zero. Real browser acceptance covered owner/member login, email search, calls, source→native company→history, catalogue with two unknown currencies, download size/SHA, historical invoices, desktop/mobile layout and zero page errors. The ordinary member saw no unlinked files and direct download returned 404. Test sessions were signed out.
+
+The snapshot was captured at 2026-10-15 10:57 UTC. SuiteCRM remains live and unchanged; later edits are not synchronized. SMTP/Google remain unconfigured, and old SuiteCRM passwords are not activated.
 
 Backups taken inside maintenance retain that maintenance response in `deploy/Caddyfile`. The normal TLS/proxy configuration is also saved as `deploy/Caddyfile.pre-migration`; restore it only after data verification. `restore-check.py` restores data archives only, never executes a backup's scripts/env, and writes a completion sentinel tied to the exact archive SHA256. `rollback.sh` refuses after traffic resumed or when the deployment no longer owns maintenance; it requires that verified pre-apply archive before restoring the exact dedicated destination database. Same-server rollback preserves the dump’s original object owners and ACLs, so the normal `crm_app` migration role retains ALTER rights. A dedicated isolated PostgreSQL regression exercises these exact restore flags, ordinary read/write, FORCE RLS, and a subsequent schema alteration. It does not remove Docker volumes or touch SuiteCRM.
+
+Final runtime acceptance confirmed all seven services running, backend/frontend/database healthy, HTTPS root and health endpoint HTTP 200, `crm_app` NOSUPERUSER/NOBYPASSRLS, the exact reviewed images, and the active 32MB/0/off PostgreSQL settings with a 1GB database limit. The isolated migration PostgreSQL container is stopped; its databases, volumes, snapshot and evidence remain private and retained.
