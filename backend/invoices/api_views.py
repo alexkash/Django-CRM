@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -172,7 +172,7 @@ class InvoiceListView(APIView, LimitOffsetPagination):
         """Every invoice the caller may open, before the query string."""
         return (
             visible_invoices_qs(self.request.profile)
-            .select_related("account", "contact", "opportunity", "created_by")
+            .select_related("account", "contact", "opportunity", "created_by", "issuer")
             .prefetch_related("line_items", "payments", "assigned_to")
         )
 
@@ -181,7 +181,13 @@ class InvoiceListView(APIView, LimitOffsetPagination):
         base = self.get_queryset()
         queryset = filter_invoices(base, request.query_params)
         results = self.paginate_queryset(queryset, request, view=self)
-        serializer = InvoiceListSerializer(results, many=True)
+        from invoices.billing.services import get_closure_summaries
+
+        serializer = InvoiceListSerializer(
+            results,
+            many=True,
+            context={"closure_summaries": get_closure_summaries(results)},
+        )
 
         return Response(
             {
@@ -434,6 +440,11 @@ class InvoiceSendView(APIView):
             if error:
                 return error
 
+            if invoice.issuer_id and not invoice.issued_at:
+                return Response(
+                    {"error": True, "message": "Спочатку випишіть рахунок."}, status=400
+                )
+
             # A settled invoice must not be re-sent: doing so would overwrite
             # sent_at/is_email_sent and mail the client about a closed invoice.
             if invoice.status in ("Paid", "Cancelled"):
@@ -521,6 +532,14 @@ class InvoiceDuplicateView(APIView):
         if error:
             return error
 
+        if original.issuer_id:
+            from invoices.billing.services import duplicate_ua_invoice
+
+            invoice = duplicate_ua_invoice(actor=request, original=original)
+            return Response(
+                {"error": False, "invoice": InvoiceSerializer(invoice).data}, status=201
+            )
+
         with transaction.atomic():
             # Create duplicate invoice
             new_invoice = Invoice.objects.create(
@@ -605,6 +624,12 @@ class InvoiceCancelView(APIView):
         if error:
             return error
 
+        if invoice.issuer_id and invoice.service_acts.filter(status="Issued").exists():
+            return Response(
+                {"error": True, "message": "Спочатку скасуйте виписані акти."},
+                status=400,
+            )
+
         # Cannot cancel already cancelled invoices
         if invoice.status == "Cancelled":
             return Response(
@@ -646,13 +671,32 @@ class InvoicePDFView(APIView):
         if error:
             return error
 
+        variant = request.query_params.get("variant", "clean")
+        if variant not in ("clean", "stamped"):
+            return Response(
+                {"error": True, "message": "Invalid PDF variant"}, status=400
+            )
         try:
-            pdf_content = generate_invoice_pdf(invoice)
+            if invoice.issuer_id:
+                from invoices.billing.pdf import document_pdf
+
+                pdf_content = document_pdf(invoice, variant=variant, actor=request)
+            else:
+                pdf_content = generate_invoice_pdf(invoice)
             filename = generate_invoice_filename(invoice)
 
             response = HttpResponse(pdf_content, content_type="application/pdf")
+            response["Cache-Control"] = "private, no-store"
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            if invoice.issuer_id:
+                from django.utils.http import content_disposition_header
+
+                response["Content-Disposition"] = content_disposition_header(
+                    False, filename=filename
+                )
             return response
+        except APIException:
+            raise
         except ImportError:
             logger.exception("PDF generation library not available")
             return Response(
@@ -718,11 +762,17 @@ class InvoiceLineItemListView(APIView):
             data=request.data, request_obj=request
         )
         if serializer.is_valid():
+            if invoice.issuer_id:
+                from invoices.billing.invoice_validation import validate_ua_line
+
+                validate_ua_line(serializer.validated_data, invoice)
             line_item = serializer.save(invoice=invoice, org=request.profile.org)
 
             # Recalculate invoice totals
             invoice.recalculate_totals()
             invoice.save()
+            if invoice.issuer_id:
+                line_item.refresh_from_db()
 
             return Response(
                 {
@@ -774,11 +824,17 @@ class InvoiceLineItemDetailView(APIView):
             line_item, data=request.data, partial=True, request_obj=request
         )
         if serializer.is_valid():
+            if invoice.issuer_id:
+                from invoices.billing.invoice_validation import validate_ua_line
+
+                validate_ua_line(serializer.validated_data, invoice, line_item)
             line_item = serializer.save()
 
             # Recalculate invoice totals
             line_item.invoice.recalculate_totals()
             line_item.invoice.save()
+            if invoice.issuer_id:
+                line_item.refresh_from_db()
 
             return Response(
                 {

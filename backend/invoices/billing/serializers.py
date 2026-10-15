@@ -92,3 +92,84 @@ class BankAccountSerializer(
         if qs.exists():
             raise serializers.ValidationError("Цей IBAN уже додано.")
         return value
+
+
+class ActLineInputSerializer(serializers.Serializer):
+    source_line_id = serializers.UUIDField()
+    quantity = serializers.DecimalField(
+        max_digits=18, decimal_places=8, min_value=Decimal("0.00000001")
+    )
+
+
+class ActInputSerializer(serializers.Serializer):
+    invoice_id = serializers.UUIDField(required=False)
+    issue_date = serializers.DateField(required=False)
+    service_period_start = serializers.DateField(required=False, allow_null=True)
+    service_period_end = serializers.DateField(required=False, allow_null=True)
+    lines = ActLineInputSerializer(many=True, required=False, allow_empty=False)
+
+
+class ServiceActLineSerializer(serializers.ModelSerializer):
+    source_line_id = serializers.UUIDField(read_only=True)
+
+    class Meta:
+        from .models import ServiceActLine
+
+        model = ServiceActLine
+        fields = (
+            "id",
+            "source_line_id",
+            "name",
+            "unit",
+            "quantity",
+            "net_amount",
+            "vat_amount",
+            "total_amount",
+            "order",
+        )
+        read_only_fields = fields
+
+
+class ServiceActSerializer(serializers.ModelSerializer):
+    invoice_id = serializers.UUIDField(read_only=True)
+    issuer_id = serializers.UUIDField(read_only=True)
+    vat_status = serializers.CharField(source="invoice.vat_status", read_only=True)
+    vat_rate = serializers.DecimalField(
+        source="invoice.tax_rate", max_digits=5, decimal_places=2, read_only=True
+    )
+    issuer_name = serializers.SerializerMethodField()
+
+    def get_issuer_name(self, obj):
+        return obj.invoice.print_snapshot.get("seller", {}).get("legal_name", "")
+
+    lines = ServiceActLineSerializer(many=True, read_only=True)
+    invoice_number = serializers.CharField(
+        source="invoice.invoice_number", read_only=True
+    )
+
+    class Meta:
+        from .models import ServiceAct
+
+        model = ServiceAct
+        fields = (
+            "id",
+            "invoice_id",
+            "invoice_number",
+            "issuer_id",
+            "issuer_name",
+            "vat_status",
+            "vat_rate",
+            "status",
+            "number",
+            "issue_date",
+            "service_period_start",
+            "service_period_end",
+            "subtotal",
+            "tax_amount",
+            "total_amount",
+            "issued_at",
+            "cancelled_at",
+            "cancellation_reason",
+            "lines",
+        )
+        read_only_fields = fields

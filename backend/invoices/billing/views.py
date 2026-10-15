@@ -15,12 +15,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.permissions import HasOrgContext, is_org_admin
+from invoices.serializer import InvoiceSerializer
 
 from .assets import normalize_scan
 from .models import LegalEntity, LegalEntityBankAccount
 from .serializers import (
+    ActInputSerializer,
     BankAccountSerializer,
     LegalEntitySerializer,
+    ServiceActSerializer,
 )
 
 
@@ -270,3 +273,215 @@ class ScanView(BillingView):
             **{kind + "_png": None, kind + "_sha256": ""}
         )
         return Response(status=204)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="IssuedUAInvoice", fields={"invoice": InvoiceSerializer()}
+            )
+        },
+    )
+)
+class UAInvoiceIssueView(BillingView):
+    def post(self, request, pk):
+        from invoices.serializer import InvoiceSerializer
+
+        from .services import issue_invoice
+
+        try:
+            invoice = issue_invoice(actor=request, invoice_id=pk)
+        except (ValidationError,):
+            raise
+        except Exception as exc:
+            from rest_framework.exceptions import APIException
+
+            if isinstance(exc, APIException):
+                raise
+            import logging
+
+            logging.getLogger(__name__).exception("UA invoice issuing failed")
+            return Response(
+                {
+                    "error": True,
+                    "message": "Не вдалося сформувати PDF. Документ не виписано.",
+                },
+                status=503 if isinstance(exc, ImportError) else 500,
+            )
+        return Response({"invoice": InvoiceSerializer(invoice).data})
+
+
+def pdf_response(content, number):
+    from django.utils.http import content_disposition_header
+
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = content_disposition_header(
+        False, filename=str(number) + ".pdf"
+    )
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@extend_schema_view(
+    get=extend_schema(
+        responses={
+            200: inline_serializer(
+                name="ServiceActPage",
+                fields={
+                    "count": schema_fields.IntegerField(),
+                    "next": schema_fields.URLField(allow_null=True),
+                    "previous": schema_fields.URLField(allow_null=True),
+                    "results": ServiceActSerializer(many=True),
+                },
+            )
+        }
+    ),
+    post=extend_schema(
+        request=ActInputSerializer, responses={201: ServiceActSerializer}
+    ),
+)
+class ServiceActListView(BillingView):
+    def get(self, request):
+        from rest_framework import serializers
+        from rest_framework.pagination import LimitOffsetPagination
+
+        from .access import visible_acts_qs
+        from .serializers import ServiceActSerializer
+
+        rows = visible_acts_qs(request.profile).prefetch_related("lines")
+        for param, field in [
+            ("invoice", "invoice_id"),
+            ("account", "invoice__account_id"),
+            ("issuer", "issuer_id"),
+        ]:
+            if request.query_params.get(param):
+                uid = serializers.UUIDField().run_validation(
+                    request.query_params[param]
+                )
+                rows = rows.filter(**{field: uid})
+        if request.query_params.get("status"):
+            rows = rows.filter(status=request.query_params["status"])
+        for param, field in [
+            ("period_start", "service_period_start__gte"),
+            ("period_end", "service_period_end__lte"),
+        ]:
+            if request.query_params.get(param):
+                rows = rows.filter(
+                    **{
+                        field: serializers.DateField().run_validation(
+                            request.query_params[param]
+                        )
+                    }
+                )
+        pagination = LimitOffsetPagination()
+        page = pagination.paginate_queryset(rows, request, view=self)
+        return pagination.get_paginated_response(
+            ServiceActSerializer(page, many=True).data
+        )
+
+    def post(self, request):
+        from .serializers import ActInputSerializer, ServiceActSerializer
+        from .services import create_act
+
+        serializer = ActInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        uid = data.pop("invoice_id", None)
+        if uid is None:
+            raise ValidationError({"invoice_id": "Оберіть рахунок."})
+        act = create_act(actor=request, invoice_id=uid, data=data)
+        return Response(ServiceActSerializer(act).data, status=201)
+
+
+@extend_schema_view(
+    get=extend_schema(responses=ServiceActSerializer),
+    put=extend_schema(request=ActInputSerializer, responses=ServiceActSerializer),
+    delete=extend_schema(responses={204: None}),
+)
+class ServiceActDetailView(BillingView):
+    def get(self, request, pk):
+        from .access import get_act_or_error
+        from .serializers import ServiceActSerializer
+
+        act, error = get_act_or_error(request, pk)
+        if error:
+            return error
+        return Response(ServiceActSerializer(act).data)
+
+    def put(self, request, pk):
+        from .serializers import ActInputSerializer, ServiceActSerializer
+        from .services import update_act
+
+        serializer = ActInputSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            ServiceActSerializer(
+                update_act(actor=request, act_id=pk, data=serializer.validated_data)
+            ).data
+        )
+
+    def delete(self, request, pk):
+        from .services import delete_act
+
+        delete_act(actor=request, act_id=pk)
+        return Response(status=204)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        request=inline_serializer(
+            name="ServiceActAction",
+            fields={"reason": schema_fields.CharField(required=False, max_length=2000)},
+        ),
+        responses=ServiceActSerializer,
+    )
+)
+class ServiceActActionView(BillingView):
+    def post(self, request, pk, action):
+        from rest_framework.exceptions import APIException
+
+        from .serializers import ServiceActSerializer
+        from .services import cancel_act, issue_act
+
+        try:
+            act = (
+                issue_act(actor=request, act_id=pk)
+                if action == "issue"
+                else cancel_act(
+                    actor=request, act_id=pk, reason=request.data.get("reason", "")
+                )
+            )
+        except APIException:
+            raise
+        except Exception as exc:
+            import logging
+
+            logging.getLogger(__name__).exception("Act issuing failed")
+            return Response(
+                {
+                    "error": True,
+                    "message": "Не вдалося сформувати PDF. Акт не виписано.",
+                },
+                status=503 if isinstance(exc, ImportError) else 500,
+            )
+        return Response(ServiceActSerializer(act).data)
+
+
+@extend_schema_view(
+    get=extend_schema(responses={(200, "application/pdf"): OpenApiTypes.BINARY})
+)
+class ServiceActPDFView(BillingView):
+    def get(self, request, pk):
+        from .access import get_act_or_error
+        from .pdf import document_pdf
+
+        act, error = get_act_or_error(request, pk)
+        if error:
+            return error
+        return pdf_response(
+            document_pdf(act, variant=request.query_params.get("variant", "clean")),
+            act.number or "act-draft",
+        )
