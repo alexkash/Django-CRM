@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import {
+  money,
   shortDate,
   longDate,
   daysSince,
@@ -128,5 +129,14 @@ describe('amounts are added up per currency, never across', () => {
     ];
     expect(sumByCurrency(rows, 'total_amount')).toEqual([{ currency: 'GBP', amount: 20 }]);
     expect(sumByCurrency([])).toEqual([]);
+  });
+});
+
+describe('recorded amounts without a source currency', () => {
+  it('renders an explicit unknown currency without inferring USD or throwing', () => {
+    expect(money(1234.5, null)).toBe('1,234.5 · currency not recorded');
+    expect(money(0, null)).toBe('0 · currency not recorded');
+    expect(money(12, 'UAH')).toContain('12');
+    expect(money(12)).toBe('$12');
   });
 });

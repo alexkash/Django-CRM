@@ -48,6 +48,12 @@ FORCE RLS applies to every history table. Members additionally need their native
 
 Existing owner login remains valid. SuiteCRM passwords, sessions and OAuth credentials are not activated. SMTP/Google are not configured by this migration; the existing private file mail backend remains in place. The owner can generate a test login through the existing SSH `deploy/login-link` helper. Do not publish login links or tokens.
 
+## Reviewed limitations
+
+Three presentation/export edges were deferred by the final review: product history has no native catalogue link (the two products remain available in the catalogue); a contact headline may name an unclassified deal alongside the correct open-pipeline amount; and `users_password_link` is currently categorized as history. That authentication table contains zero rows in this exact approved snapshot, so no reset token is imported. Seal it before using the exporter for a later snapshot. The deployment gate accepts only the exact approved snapshot hash.
+
+Full-data authenticated checks succeeded for both roles. During concurrent import, the selected ordinary member’s all-parent permission queries took approximately 13–18 seconds, while administrator reads after startup took under one second. This is a known history-read performance limitation, not permission relaxation. Final live acceptance records timings separately.
+
 ## Completion evidence
 
 The final server reports identify snapshot, table coverage, native projections, original orphan links, adaptations and file hashes. `verified=true` requires zero unexplained differences. Final counts and backup/restore evidence are recorded after the actual destination apply; a staging-only run is not completion.
