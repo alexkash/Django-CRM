@@ -1,3 +1,4 @@
+import { copyPaging } from '$lib/v2/pagination.js';
 import { listDocuments, FILTER_FIELDS } from '$lib/server/v2/documents.js';
 import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
 
@@ -29,6 +30,7 @@ import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
 export async function load({ cookies, url }) {
   const filters = readFilters(url, 'documents');
   const params = buildFilterQuery(FILTER_FIELDS, filters);
+  copyPaging(params, url);
   const includeArchived = url.searchParams.get('archived') === '1';
   if (!includeArchived && !params.has('status')) params.set('status', 'active');
   return await listDocuments({ cookies }, params);

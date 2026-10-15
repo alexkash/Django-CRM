@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Tickets: the fifth v2 module wired to the real API.
  *
@@ -177,14 +178,14 @@ export const FILTER_FIELDS = [
  * @param {URLSearchParams} [params]
  */
 export async function listTickets({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '25');
+  const query = pageQuery(params ?? new URLSearchParams(), 25);
   query.set('slim', 'true');
 
   const response = await apiRequest(`/cases/?${query}`, {}, { cookies });
   const rows = (response.cases ?? []).map(toRow);
 
   return {
+    pagination: pageState(query, response.cases_count ?? rows.length, rows.length),
     results: rows,
     totals: {
       // Counted over the whole filtered queue by the API, not over this page.

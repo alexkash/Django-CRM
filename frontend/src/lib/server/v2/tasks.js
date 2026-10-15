@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Tasks: the seventh v2 module wired to the real API.
  *
@@ -146,8 +147,7 @@ function toRow(row) {
  * @param {URLSearchParams} [params]
  */
 export async function listTasks({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '50');
+  const query = pageQuery(params ?? new URLSearchParams(), 50);
   // The account and contact catalogues are for the *form*. A list page that
   // pulls them costs 120 KB it never renders.
   if (!query.has('slim')) query.set('slim', 'true');
@@ -157,6 +157,7 @@ export async function listTasks({ cookies }, params) {
   const totals = response.totals ?? {};
 
   return {
+    pagination: pageState(query, response.tasks_count ?? rows.length, rows.length),
     results: rows,
     totals: {
       count: totals.count ?? rows.length,

@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Pipeline: the second v2 module wired to the real API.
  *
@@ -124,14 +125,18 @@ function toRow(deal) {
  * @param {URLSearchParams} [params]
  */
 export async function listDeals({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '25');
+  const query = pageQuery(params ?? new URLSearchParams(), 25);
 
   const response = await apiRequest(`/opportunities/?${query}`, {}, { cookies });
   const rows = (response.opportunities ?? []).map(toRow);
   rows.sort((a, b) => b.amount - a.amount);
 
   return {
+    pagination: pageState(
+      query,
+      response.opportunities_count ?? response.totals?.count ?? rows.length,
+      rows.length
+    ),
     results: rows,
     totals: normaliseTotals(response.totals, rows)
   };

@@ -1,4 +1,5 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
@@ -141,16 +142,7 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      {#if totals.shown < totals.count}
-        Showing <span class="v2-num">{totals.shown}</span> of
-        <span class="v2-num">{count(totals.count)}</span>
-      {:else}
-        Showing all <span class="v2-num">{count(totals.count)}</span>
-      {/if}
-      {#if totals.inactive}
-        · <span class="v2-num">{totals.inactive}</span> inactive not shown
-      {/if}
-    </p>
   {/if}
 </div>
+
+<ListPagination pagination={data.pagination} url={page.url} />

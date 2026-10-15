@@ -1,4 +1,5 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { invalidateAll } from '$app/navigation';
@@ -289,16 +290,9 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      Showing <span class="v2-num">{tickets.length}</span> of
-      <span class="v2-num">{count(totals.count)}</span>
-      {#if !data.showAll}
-        · <a href={resolve('/tickets?all=1')} style="color:inherit">include closed</a>
-      {:else}
-        · <a href={resolve('/tickets')} style="color:inherit">open only</a>
-      {/if}
-    </p>
   {/if}
 </div>
 
 <TicketImportDrawer bind:open={importOpen} />
+
+<ListPagination pagination={data.pagination} url={page.url} />

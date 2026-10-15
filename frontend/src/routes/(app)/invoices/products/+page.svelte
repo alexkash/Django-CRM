@@ -1,4 +1,6 @@
 <script>
+  import { page } from '$app/state';
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { resolve } from '$app/paths';
   /**
    * The catalogue line items are picked from. Short, boring, and the only page
@@ -118,6 +120,8 @@
     {/if}
   </div>
 </div>
+
+<ListPagination pagination={data.pagination} url={page.url} pageTotals />
 
 <style>
   /* Sits after the price on each catalogue row; only drawn for an admin. */

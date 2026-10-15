@@ -1,3 +1,4 @@
+import { copyPaging } from '$lib/v2/pagination.js';
 import { fail } from '@sveltejs/kit';
 import { listTasks, setTaskDone, FILTER_FIELDS } from '$lib/server/v2/tasks.js';
 import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
@@ -20,10 +21,15 @@ export async function load(event) {
 
   const filters = readFilters(url, 'tasks');
   const params = buildFilterQuery(FILTER_FIELDS, filters);
+  if (!showAll && !filters.status) {
+    params.append('status', 'New');
+    params.append('status', 'In Progress');
+  }
+  copyPaging(params, url);
   const search = url.searchParams.get('q');
   if (search) params.set('search', search);
 
-  const [{ results, totals, owners }, orgPeople] = await Promise.all([
+  const [{ results, totals, owners, pagination }, orgPeople] = await Promise.all([
     listTasks(event, params),
     getOrgPeopleAndTeams(event.cookies)
   ]);
@@ -35,10 +41,11 @@ export async function load(event) {
   const explicitStatus = Boolean(filters.status);
 
   return {
-    // Filtered here rather than with `?status=` alone, because the totals the
-    // header reads have to cover both; "3 of 11 open" needs the 11.
+    // The API filters the open queue before pagination; keep this defensive
+    // check for stale responses. Header totals still cover every task.
     tasks: showAll || explicitStatus ? results : results.filter((task) => !task.is_done),
     totals,
+    pagination,
     owners,
     showAll,
     people: orgPeople.people,

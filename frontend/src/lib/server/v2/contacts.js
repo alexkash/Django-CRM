@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Contacts: the fourth v2 module wired to the real API.
  *
@@ -131,13 +132,13 @@ function toRow(contact) {
  * @param {URLSearchParams} [params]
  */
 export async function listContacts({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '25');
+  const query = pageQuery(params ?? new URLSearchParams(), 25);
 
   const response = await apiRequest(`/contacts/?${query}`, {}, { cookies });
   const rows = (response.results ?? []).map(toRow);
 
   return {
+    pagination: pageState(query, response.count ?? rows.length, rows.length),
     results: rows,
     totals: {
       count: response.count ?? rows.length,

@@ -1,4 +1,5 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { resolve } from '$app/paths';
   /**
    * Tasks are the one list where the row itself is the work, so every row
@@ -205,18 +206,10 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      Showing <span class="v2-num">{tasks.length}</span> of
-      <span class="v2-num">{count(data.showAll ? totals.count : totals.open)}</span>
-      {data.showAll ? 'tasks' : 'open'}
-      {#if !data.showAll}
-        · <a href={resolve('/tasks?all=1')} style="color:inherit">include completed</a>
-      {:else}
-        · <a href={resolve('/tasks')} style="color:inherit">open only</a>
-      {/if}
-    </p>
   {/if}
 </div>
+
+<ListPagination pagination={data.pagination} url={page.url} />
 
 <style>
   .v2-task-note,

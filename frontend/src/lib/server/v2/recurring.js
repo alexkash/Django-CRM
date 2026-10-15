@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Recurring invoices: the sixteenth v2 module, third of the invoices sub-pages.
  *
@@ -146,15 +147,15 @@ export const FILTER_FIELDS = ['is_active'];
  * @param {URLSearchParams} [params]
  */
 export async function listRecurringInvoices({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  // One page covers every real org; totals derive from what comes back.
-  if (!query.has('limit')) query.set('limit', '1000');
+  const query = pageQuery(params ?? new URLSearchParams(), 1000);
+  // Secondary totals describe this page; the UI labels them when paginated.
 
   const response = await apiRequest(`/invoices/recurring/?${query.toString()}`, {}, { cookies });
   const rows = (response.results ?? []).map(toRow);
   rows.sort(bySchedulePriority);
 
   return {
+    pagination: pageState(query, response.count ?? rows.length, rows.length),
     schedules: rows,
     totals: {
       count: response.count ?? rows.length,

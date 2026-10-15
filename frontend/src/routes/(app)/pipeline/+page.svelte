@@ -1,4 +1,5 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
@@ -407,12 +408,10 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      Showing <span class="v2-num">{deals.length}</span> of
-      <span class="v2-num">{count(totals.count)}</span>
-    </p>
   </div>
 {/if}
+
+<ListPagination pagination={data.pagination} url={page.url} />
 
 <style>
   /* One line on a card and in a row: the title can be anything a person

@@ -1,3 +1,4 @@
+import { copyPaging } from '$lib/v2/pagination.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
   listEstimates,
@@ -23,14 +24,15 @@ import { readableError } from '$lib/server/v2/form-errors.js';
 export async function load({ cookies, url }) {
   const params = buildFilterQuery(FILTER_FIELDS, readFilters(url, 'estimates'));
 
-  const [{ estimates, totals }, accountList] = await Promise.all([
+  copyPaging(params, url);
+  const [{ estimates, totals, pagination }, accountList] = await Promise.all([
     listEstimates({ cookies }, params),
     // A failed account fetch should cost the Account dropdown in the filter
     // bar, not the whole worklist. Same pattern as the Tag fetch in leads.js.
     listAccountsPicker({ cookies }).catch(() => ({ accounts: [] }))
   ]);
 
-  return { estimates, totals, accounts: accountList.accounts ?? [] };
+  return { estimates, totals, pagination, accounts: accountList.accounts ?? [] };
 }
 
 /** @type {import('./$types').Actions} */

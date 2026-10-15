@@ -22,7 +22,7 @@ import { loadSavedViews, savedViewActions } from '$lib/server/v2/saved-views.js'
 export async function load({ cookies, url, locals }) {
   const params = leadListQuery(url);
 
-  const [{ results, totals }, orgPeople, tagList, savedViews] = await Promise.all([
+  const [{ results, totals, pagination }, orgPeople, tagList, savedViews] = await Promise.all([
     listLeads({ cookies }, params),
     getOrgPeopleAndTeams(cookies),
     // A failed tag fetch should cost the Tag dropdown in the filter bar, not
@@ -32,10 +32,11 @@ export async function load({ cookies, url, locals }) {
   ]);
 
   return {
-    // `listLeads` returns `{ results, totals }`; the page reads `data.leads`,
+    // `listLeads` returns `{ results, totals, pagination }`; the page reads `data.leads`,
     // so this renames rather than spreading `list` verbatim.
     leads: results,
     totals,
+    pagination,
     people: orgPeople.people,
     tags: tagList.tags ?? [],
     savedViews,

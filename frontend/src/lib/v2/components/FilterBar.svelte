@@ -167,7 +167,7 @@
         Filter
       </summary>
       <form class="v2-menu v2-filter-form" method="GET">
-        <!-- Params the form does not own (the preset's own, plus paging) would
+        <!-- Params the form does not own (the preset's own, plus page size) would
              be dropped by a GET submit, which resets the whole URL. Carrying
              them as hidden inputs keeps the active view when a filter is
              added.
@@ -178,7 +178,7 @@
              the kind of param this view cannot honour, so submitting Apply
              here drops it rather than carrying it along as a hidden input. -->
         {#each [...url.searchParams] as [key, value] (key)}
-          {#if !descriptor.fields.some((/** @type {any} */ f) => f.key === key || f.gteKey === key || f.lteKey === key)}
+          {#if key !== 'offset' && !descriptor.fields.some((/** @type {any} */ f) => f.key === key || f.gteKey === key || f.lteKey === key)}
             <input type="hidden" name={key} {value} />
           {/if}
         {/each}

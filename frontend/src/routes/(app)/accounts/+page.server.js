@@ -23,7 +23,7 @@ import { loadSavedViews, savedViewActions } from '$lib/server/v2/saved-views.js'
 export async function load({ cookies, url, locals }) {
   const params = accountListQuery(url);
 
-  const [{ results, totals }, orgPeople, tagList, savedViews] = await Promise.all([
+  const [{ results, totals, pagination }, orgPeople, tagList, savedViews] = await Promise.all([
     listAccounts({ cookies }, params),
     getOrgPeopleAndTeams(cookies),
     // A failed tag fetch should cost the Tag dropdown in the filter bar, not
@@ -35,6 +35,7 @@ export async function load({ cookies, url, locals }) {
   return {
     accounts: results,
     totals,
+    pagination,
     people: orgPeople.people,
     tags: tagList.tags ?? [],
     savedViews,

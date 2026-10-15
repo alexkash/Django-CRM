@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Leads: the first v2 module wired to the real API.
  *
@@ -100,8 +101,7 @@ function toRow(lead) {
  * @param {URLSearchParams} [params]
  */
 export async function listLeads({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '25');
+  const query = pageQuery(params ?? new URLSearchParams(), 25);
 
   const response = await apiRequest(`/leads/?${query}`, {}, { cookies });
   const rows = (response.open_leads?.open_leads ?? []).map(toRow);
@@ -109,6 +109,11 @@ export async function listLeads({ cookies }, params) {
   rows.sort((a, b) => lastTouch(a) - lastTouch(b));
 
   return {
+    pagination: pageState(
+      query,
+      response.totals?.count ?? response.open_leads?.leads_count ?? rows.length,
+      rows.length
+    ),
     results: rows,
     totals: response.totals ?? { count: rows.length, unworked_over_a_week: 0 }
   };
