@@ -282,6 +282,7 @@ export function fieldKeys(/** @type {Descriptor} */ descriptor) {
 export function withoutParam(/** @type {URL} */ url, /** @type {string} */ key) {
   const next = new URLSearchParams(url.search);
   next.delete(key);
+  next.delete('offset');
   const qs = next.toString();
   return qs ? `${url.pathname}?${qs}` : url.pathname;
 }
@@ -295,6 +296,7 @@ export function withParams(
   /** @type {Record<string, string|null>} */ params
 ) {
   const next = new URLSearchParams(url.search);
+  if (!('offset' in params)) next.delete('offset');
   for (const [key, value] of Object.entries(params)) {
     if (value === null || value === '') next.delete(key);
     else next.set(key, value);

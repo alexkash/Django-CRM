@@ -1,4 +1,5 @@
 <script>
+  import LegacyHistory from '$lib/v2/components/LegacyHistory.svelte';
   import { resolve } from '$app/paths';
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
@@ -110,13 +111,16 @@
       {/each}
       <span style="margin-left:auto">
         <Pill tone={AGING_TONE[deal.aging_status]} dot>
-          {`${AGING_LABEL[deal.aging_status]} · ${deal.days_in_current_stage} days in ${deal.stage_label}`}
+          {deal.stage_kind === 'unknown'
+            ? 'Needs classification'
+            : `${AGING_LABEL[deal.aging_status]} · ${deal.days_in_current_stage} days in ${deal.stage_label}`}
         </Pill>
       </span>
     </div>
 
     <div class="v2-scroll">
       <div class="v2-pad" style="padding-top:14px;padding-bottom:32px">
+        <LegacyHistory history={data.legacyHistory} model="opportunities" id={deal.id} />
         <!--
           The "next action" card that used to sit here was a fixture string.
           Opportunity has no such field and nothing derives one, so there is
@@ -186,7 +190,7 @@
       <dt>Value</dt>
       <dd class="v2-num">{money(deal.amount, deal.currency)}</dd>
       <dt>Probability</dt>
-      <dd class="v2-num">{deal.probability}%</dd>
+      <dd class="v2-num">{deal.probability === null ? 'Не указано' : `${deal.probability}%`}</dd>
       <dt>Expected close</dt>
       <dd>{longDate(deal.closed_on)}</dd>
       <dt>Type</dt>

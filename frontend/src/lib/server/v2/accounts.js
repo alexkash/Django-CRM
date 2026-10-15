@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Accounts: the third v2 module wired to the real API.
  *
@@ -197,8 +198,7 @@ export const FILTER_FIELDS = ['assigned_to', 'tags', 'industry', 'city'];
  * @param {URLSearchParams} [params]
  */
 export async function listAccounts({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '25');
+  const query = pageQuery(params ?? new URLSearchParams(), 25);
 
   const response = await apiRequest(`/accounts/?${query}`, {}, { cookies });
   const active = response.active_accounts ?? {};
@@ -215,6 +215,7 @@ export async function listAccounts({ cookies }, params) {
   const inactive = response.closed_accounts ?? {};
 
   return {
+    pagination: pageState(query, active.open_accounts_count ?? rows.length, rows.length),
     results: rows,
     totals: {
       count: active.open_accounts_count ?? rows.length,

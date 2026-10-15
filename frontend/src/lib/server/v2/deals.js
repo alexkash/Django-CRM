@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Pipeline: the second v2 module wired to the real API.
  *
@@ -83,21 +84,21 @@ function toRow(deal) {
     pipeline: deal.pipeline ?? null,
     stage: deal.stage,
     // What the stage is called and what it means, from the deal's own
-    // pipeline. Closed is `stage_kind !== 'open'`, never a code prefix: an
+    // pipeline. Only won/lost are closed, never a code prefix: an
     // admin can name a won stage anything.
     stage_label: deal.stage_label ?? deal.stage,
     stage_kind: deal.stage_kind ?? null,
     amount: num(deal.amount) ?? 0,
     currency: deal.currency || 'USD',
-    probability: deal.probability ?? 0,
+    probability: deal.probability ?? (deal.stage_kind === 'unknown' ? null : 0),
     closed_on: deal.closed_on ?? null,
     opportunity_type: deal.opportunity_type ?? 'NEW_BUSINESS',
     lead_source: deal.lead_source ?? '',
     description: deal.description ?? '',
     assigned_to: ownerName(deal),
     stage_changed_at: deal.stage_changed_at ?? null,
-    days_in_current_stage: deal.days_in_stage ?? 0,
-    aging_status: deal.aging_status ?? 'green',
+    days_in_current_stage: deal.stage_kind === 'unknown' ? null : (deal.days_in_stage ?? 0),
+    aging_status: deal.stage_kind === 'unknown' ? 'unknown' : (deal.aging_status ?? 'green'),
     next_activity: toNextActivity(deal.next_activity),
     created_at: deal.created_at
   };
@@ -124,14 +125,18 @@ function toRow(deal) {
  * @param {URLSearchParams} [params]
  */
 export async function listDeals({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '25');
+  const query = pageQuery(params ?? new URLSearchParams(), 25);
 
   const response = await apiRequest(`/opportunities/?${query}`, {}, { cookies });
   const rows = (response.opportunities ?? []).map(toRow);
   rows.sort((a, b) => b.amount - a.amount);
 
   return {
+    pagination: pageState(
+      query,
+      response.opportunities_count ?? response.totals?.count ?? rows.length,
+      rows.length
+    ),
     results: rows,
     totals: normaliseTotals(response.totals, rows)
   };

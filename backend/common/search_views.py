@@ -200,4 +200,21 @@ class GlobalSearchView(APIView):
                 }
             )
 
+        from legacy.access import visible_records
+        from legacy.search import search_records
+
+        history = (
+            search_records(visible_records(profile), q)
+            .defer("payload", "search_text")
+            .order_by("-source_created_at", "id")[:PER_TYPE]
+        )
+        for record in history:
+            results.append(
+                {
+                    "type": "legacy",
+                    "id": str(record.id),
+                    "title": record.title,
+                    "subtitle": record.source_table,
+                }
+            )
         return Response({"query": q, "results": results})

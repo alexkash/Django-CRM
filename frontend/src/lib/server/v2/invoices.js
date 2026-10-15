@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Invoices: the eighth v2 module wired to the real API.
  *
@@ -200,8 +201,7 @@ const moneyTotals = (row) => ({
  * @param {URLSearchParams} [params]
  */
 export async function listInvoices({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '100');
+  const query = pageQuery(params ?? new URLSearchParams(), 100);
   // Most overdue first; the backend understands due_date sort.
   if (!query.has('sort')) query.set('sort', 'due_date');
 
@@ -209,6 +209,11 @@ export async function listInvoices({ cookies }, params) {
   const totals = response.totals ?? {};
   const rows = totals.by_currency ?? [];
   return {
+    pagination: pageState(
+      query,
+      response.count ?? totals.count ?? 0,
+      (response.results ?? []).length
+    ),
     invoices: (response.results ?? []).map(toRow),
     totals: {
       count: totals.count ?? response.count ?? 0,

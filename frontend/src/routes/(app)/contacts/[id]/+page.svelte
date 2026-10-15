@@ -1,4 +1,5 @@
 <script>
+  import LegacyHistory from '$lib/v2/components/LegacyHistory.svelte';
   import { resolve } from '$app/paths';
   /**
    * A person, and everything that person is involved in.
@@ -228,6 +229,7 @@
   <div class="v2-main">
     <div class="v2-scroll">
       <div class="v2-pad" style="padding-top:16px;padding-bottom:32px">
+        <LegacyHistory history={data.legacyHistory} model="contacts" id={contact.id} />
         {#if headline}
           <div style="margin-bottom:20px">
             <NextAction

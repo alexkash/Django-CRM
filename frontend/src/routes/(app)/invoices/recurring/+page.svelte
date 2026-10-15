@@ -1,4 +1,5 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { resolve } from '$app/paths';
   /**
    * Billing schedules. Each row answers one question: when does this next
@@ -187,12 +188,10 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      Showing <span class="v2-num">{data.schedules.length}</span> of
-      <span class="v2-num">{count(totals.count)}</span>
-    </p>
   {/if}
 </div>
+
+<ListPagination pagination={data.pagination} url={page.url} pageTotals />
 
 <style>
   .rec-error {

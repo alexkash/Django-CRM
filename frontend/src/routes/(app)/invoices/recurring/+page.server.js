@@ -1,3 +1,4 @@
+import { copyPaging } from '$lib/v2/pagination.js';
 import { fail } from '@sveltejs/kit';
 import { listRecurringInvoices, toggleRecurring, FILTER_FIELDS } from '$lib/server/v2/recurring.js';
 import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
@@ -15,6 +16,7 @@ import { readableError } from '$lib/server/v2/form-errors.js';
  */
 export async function load({ cookies, url }) {
   const params = buildFilterQuery(FILTER_FIELDS, readFilters(url, 'recurring'));
+  copyPaging(params, url);
   return await listRecurringInvoices({ cookies }, params);
 }
 

@@ -296,7 +296,29 @@ class TaskStage(BaseModel):
         super().save(*args, **kwargs)
 
 
+class TaskManager(models.Manager):
+    def get_queryset(self):
+        # A correlated annotation avoids a permission query for every ordinary
+        # kanban card. Resolve the model lazily to avoid app-import cycles.
+        from legacy.models import LegacyProjection
+
+        imported = (
+            LegacyProjection.objects.filter(
+                org_id=models.OuterRef("org_id"),
+                target_model="tasks.Task",
+                target_id=models.OuterRef("pk"),
+            )
+            .order_by()
+            .values("record_id")[:1]
+        )
+        return (
+            super().get_queryset().annotate(_legacy_record_id=models.Subquery(imported))
+        )
+
+
 class Task(AssignableMixin, BaseModel):
+    objects = TaskManager()
+
     STATUS_CHOICES = (
         ("New", "New"),
         ("In Progress", "In Progress"),

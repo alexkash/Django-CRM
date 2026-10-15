@@ -34,6 +34,8 @@ def send_email(email_obj_id, org_id):
         logger.error("AccountEmail id=%s not found, skipping task.", email_obj_id)
         return
     else:
+        if email_obj.is_historical:
+            return
         contacts = email_obj.recipients.all()
         for contact_obj in contacts:
             if not AccountEmailLog.objects.filter(

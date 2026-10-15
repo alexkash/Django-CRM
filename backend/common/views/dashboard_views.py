@@ -116,7 +116,9 @@ def _readable_activities(profile):
             entity_type=entity_type,
             entity_id__in=rule(profile).values("pk"),
         )
-    return qs.filter(readable)
+    from legacy.access import readable_projection_filter
+
+    return readable_projection_filter(qs.filter(readable), profile)
 
 
 class ApiHomeView(APIView):

@@ -1,4 +1,5 @@
 <script>
+  import LegacyHistory from '$lib/v2/components/LegacyHistory.svelte';
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   /**
@@ -215,6 +216,7 @@
   <div class="v2-main">
     <div class="v2-scroll">
       <div class="v2-pad" style="padding-top:16px;padding-bottom:32px">
+        <LegacyHistory history={data.legacyHistory} model="leads" id={lead.id} />
         {#if headline}
           <div style="margin-bottom:18px">
             <NextAction

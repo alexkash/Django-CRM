@@ -1,4 +1,5 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { resolve } from '$app/paths';
   /**
    * Status and visibility are two separate facts, and the list shows both.
@@ -173,12 +174,7 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      Showing <span class="v2-num">{articles.length}</span> of
-      <span class="v2-num">{count(totals.matched)}</span>
-      {#if page.url.search}
-        · <a href={resolve('/solutions')} style="color:inherit">clear filters</a>
-      {/if}
-    </p>
   {/if}
 </div>
+
+<ListPagination pagination={data.pagination} url={page.url} />

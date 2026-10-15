@@ -157,7 +157,7 @@ def filter_invoices(queryset, params):
         "total_amount",
         "status",
     ]:
-        queryset = queryset.order_by(sort)
+        queryset = queryset.order_by(sort, "id")
 
     return queryset
 
@@ -949,7 +949,7 @@ class ProductListView(APIView, LimitOffsetPagination):
         # this attribute and falls back to its own query on the detail views.
         queryset = queryset.annotate(
             used_on_count=Count("invoice_line_items__invoice", distinct=True)
-        ).order_by("name")
+        ).order_by("name", "id")
 
         results = self.paginate_queryset(queryset, request, view=self)
         return Response(
@@ -1125,7 +1125,7 @@ class EstimateListView(APIView, LimitOffsetPagination):
                     )
 
         results = self.paginate_queryset(
-            queryset.order_by("-created_at"), request, view=self
+            queryset.order_by("-created_at", "id"), request, view=self
         )
         return Response(
             {
@@ -1472,7 +1472,7 @@ class RecurringInvoiceListView(APIView, LimitOffsetPagination):
         queryset = (
             visible_recurring_qs(request.profile)
             .select_related("account", "contact")
-            .order_by("-created_at")
+            .order_by("-created_at", "id")
         )
 
         # Apply filters

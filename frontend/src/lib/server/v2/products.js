@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Products: the product catalogue line items are priced from, wired to the
  * real API. First of the invoices sub-pages to move off fixtures.
@@ -43,6 +44,7 @@ import { viewerIsAdmin } from './organization.js';
  */
 export const CURRENCY_CHOICES = [
   { code: 'USD', label: 'USD, Dollar' },
+  { code: 'UAH', label: 'UAH, Hryvnia' },
   { code: 'EUR', label: 'EUR, Euro' },
   { code: 'GBP', label: 'GBP, Pound' },
   { code: 'INR', label: 'INR, Rupee' },
@@ -103,15 +105,17 @@ function computeTotals(items) {
  *
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  */
-export async function listProducts({ cookies }) {
-  const resp = await apiRequest('/invoices/products/?limit=1000', {}, { cookies });
+export async function listProducts({ cookies }, params = new URLSearchParams()) {
+  const query = pageQuery(params, 1000);
+  const resp = await apiRequest(`/invoices/products/?${query}`, {}, { cookies });
   const results = (resp?.results ?? [])
     .map(toProduct)
     .sort((a, b) => Number(b.is_active) - Number(a.is_active) || a.name.localeCompare(b.name));
 
   return {
     results,
-    totals: computeTotals(results),
+    totals: { ...computeTotals(results), count: resp.count ?? results.length },
+    pagination: pageState(query, resp.count ?? results.length, results.length),
     can_manage: viewerIsAdmin(cookies)
   };
 }

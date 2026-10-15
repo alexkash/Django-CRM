@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Documents: the thirteenth v2 module wired to the real API.
  *
@@ -172,32 +173,31 @@ function computeTotals(docs) {
 }
 
 /**
- * The documents list. `limit=1000` fetches the whole (small) set through both
- * paginated envelopes so the totals cover every row. The backend has already
- * scoped the rows to the org and, for a non-admin, to what `_visible_to`
- * allows, so every row returned here is one the viewer may open.
- *
- * A `status` filter narrows both envelopes at once: `DocumentListView.get`
- * applies it to the base queryset before splitting into
- * `documents_active`/`documents_inactive`, so `?status=active` leaves the
- * inactive envelope empty and the merge below still returns the right rows.
+ * The documents list uses one ordered window across active and archived rows.
+ * The API scopes it to readable documents before counting and pagination.
+ * Its totals cover the filtered set; legacy two-envelope responses remain a
+ * fallback for older servers. Page size defaults to 1000 for compatibility.
  *
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  * @param {URLSearchParams} [params]
  */
 export async function listDocuments({ cookies }, params) {
   const viewer = viewerClaims(cookies);
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '1000');
+  const query = pageQuery(params ?? new URLSearchParams(), 1000);
+  query.set('flat', 'true');
   const resp = await apiRequest(`/documents/?${query}`, {}, { cookies });
 
   const active = resp?.documents_active?.documents_active ?? [];
   const inactive = resp?.documents_inactive?.documents_inactive ?? [];
-  const results = [...active, ...inactive]
+  const results = (resp.results ?? [...active, ...inactive])
     .map((d) => toDoc(d, viewer))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  return { results, totals: computeTotals(results) };
+  return {
+    results,
+    totals: resp.totals ?? computeTotals(results),
+    pagination: pageState(query, resp.count ?? results.length, results.length)
+  };
 }
 
 /**

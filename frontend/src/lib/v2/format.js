@@ -1,9 +1,13 @@
 /** Formatting helpers for v2. Every number rendered goes through one of these. */
 
 /** @param {number|string|null|undefined} n */
+/** @param {number|string|null|undefined} n @param {string|null} [currency] */
 export function money(n, currency = 'USD') {
   const v = Number(n ?? 0);
   if (!Number.isFinite(v)) return '—';
+  if (currency === null) {
+    return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(v)} · currency not recorded`;
+  }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,

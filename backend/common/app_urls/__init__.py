@@ -6,6 +6,7 @@ from tasks.urls import board_urlpatterns
 
 app_name = "common_urls"
 urlpatterns = [
+    path("legacy/", include("legacy.urls", namespace="legacy")),
     path("", include(("common.urls"))),
     # Org-scoped global search for the ⌘K palette (spans every module, so it
     # lives here rather than in any one app).

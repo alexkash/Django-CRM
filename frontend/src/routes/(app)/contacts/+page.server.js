@@ -25,7 +25,7 @@ export async function load({ cookies, url, locals }) {
   const params = contactListQuery(url);
   const includeInactive = url.searchParams.get('inactive') === '1';
 
-  const [{ results, totals }, orgPeople, tagList, savedViews] = await Promise.all([
+  const [{ results, totals, pagination }, orgPeople, tagList, savedViews] = await Promise.all([
     listContacts({ cookies }, params),
     getOrgPeopleAndTeams(cookies),
     // A failed tag fetch should cost the Tag dropdown in the filter bar, not
@@ -37,6 +37,7 @@ export async function load({ cookies, url, locals }) {
   return {
     contacts: results,
     totals,
+    pagination,
     includeInactive,
     search: params.get('search') ?? '',
     people: orgPeople.people,

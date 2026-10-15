@@ -1,3 +1,4 @@
+import { copyPaging } from '$lib/v2/pagination.js';
 import { fail } from '@sveltejs/kit';
 import { listArticles, setPublished, FILTER_FIELDS } from '$lib/server/v2/solutions.js';
 import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
@@ -18,12 +19,13 @@ export async function load({ cookies, locals, url }) {
     if (value) params.set(key, value);
   }
 
+  copyPaging(params, url);
   // Three states, not two: unset means "everything".
   const visibility = url.searchParams.get('visibility') ?? '';
   if (visibility === 'published') params.set('is_published', 'true');
   if (visibility === 'internal') params.set('is_published', 'false');
 
-  const [{ results, totals }, tagList] = await Promise.all([
+  const [{ results, totals, pagination }, tagList] = await Promise.all([
     listArticles({ cookies }, params),
     // Same degradation as the ticket queue: losing the tag list should cost
     // the Tag dropdown, not the whole knowledge base.
@@ -33,6 +35,7 @@ export async function load({ cookies, locals, url }) {
   return {
     articles: results,
     totals,
+    pagination,
     tags: tagList.tags ?? [],
     search: params.get('search') ?? '',
     status: params.get('status') ?? '',

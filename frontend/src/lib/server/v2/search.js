@@ -10,6 +10,7 @@ import { apiRequest } from '$lib/api-helpers.js';
 
 /** Backend `type` → palette group label + detail route. */
 const MAP = {
+  legacy: { kind: 'SuiteCRM history', href: (/** @type {string} */ id) => `/legacy/${id}` },
   lead: { kind: 'Leads', href: (/** @type {string} */ id) => `/leads/${id}` },
   deal: { kind: 'Deals', href: (/** @type {string} */ id) => `/pipeline/${id}` },
   account: { kind: 'Accounts', href: (/** @type {string} */ id) => `/accounts/${id}` },

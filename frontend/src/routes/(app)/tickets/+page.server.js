@@ -32,7 +32,7 @@ export async function load({ cookies, url, locals }) {
   const status = url.searchParams.get('status') ?? '';
   const showAll = url.searchParams.get('all') === '1';
 
-  const [{ results, totals }, orgPeople, tagList, savedViews] = await Promise.all([
+  const [{ results, totals, pagination }, orgPeople, tagList, savedViews] = await Promise.all([
     listTickets({ cookies }, params),
     getOrgPeopleAndTeams(cookies),
     // getTags has no fallback of its own: on /settings/tags a failed fetch is
@@ -47,6 +47,7 @@ export async function load({ cookies, url, locals }) {
   return {
     tickets: results,
     totals,
+    pagination,
     showAll,
     status,
     search: params.get('search') ?? '',

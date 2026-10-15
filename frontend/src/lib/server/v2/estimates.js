@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Estimates: the fifteenth v2 module wired to the real API, and the second of
  * the invoices sub-pages (after products).
@@ -147,10 +148,9 @@ function computeTotals(rows) {
  * @param {URLSearchParams} [params]
  */
 export async function listEstimates({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  // One page covers every real org; totals are derived from what comes back,
-  // so anything past this ceiling would be uncounted. See the module note.
-  if (!query.has('limit')) query.set('limit', '1000');
+  const query = pageQuery(params ?? new URLSearchParams(), 1000);
+  // Secondary amount/status totals describe this page; the matched count is
+  // server-provided and the UI labels partial-page totals.
 
   const response = await apiRequest(`/invoices/estimates/?${query.toString()}`, {}, { cookies });
   const rows = (response.results ?? []).map(toRow);
@@ -159,6 +159,7 @@ export async function listEstimates({ cookies }, params) {
   rows.sort((a, b) => Number(needsBilling(b)) - Number(needsBilling(a)));
 
   return {
+    pagination: pageState(query, response.count ?? rows.length, rows.length),
     estimates: rows,
     totals: {
       count: response.count ?? rows.length,

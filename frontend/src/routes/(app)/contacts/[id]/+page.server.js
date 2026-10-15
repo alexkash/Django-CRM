@@ -1,3 +1,4 @@
+import { entityHistorySection } from '$lib/server/v2/legacy.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { addContactNote, deleteContact, getContact } from '$lib/server/v2/contacts.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
@@ -5,11 +6,12 @@ import { recordDuplicates } from '$lib/server/v2/duplicates.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, params }) {
-  const [contact, duplicates] = await Promise.all([
+  const [contact, duplicates, legacyHistory] = await Promise.all([
     getContact({ cookies }, params.id),
-    recordDuplicates({ cookies }, 'contacts', params.id)
+    recordDuplicates({ cookies }, 'contacts', params.id),
+    entityHistorySection({ cookies }, 'contacts', params.id)
   ]);
-  return { ...contact, duplicates };
+  return { ...contact, duplicates, legacyHistory };
 }
 
 /** @type {import('./$types').Actions} */

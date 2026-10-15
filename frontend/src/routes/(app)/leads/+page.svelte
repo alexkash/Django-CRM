@@ -1,4 +1,5 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
@@ -66,7 +67,7 @@
   tags={data.tags}
   meId={data.meId}
   saved={data.savedViews}
-  meta="Least recently touched first"
+  meta="This page: least recently touched first"
 />
 
 <LeadImportDrawer
@@ -146,12 +147,10 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      Showing <span class="v2-num">{leads.length}</span> of
-      <span class="v2-num">{count(totals.count)}</span>
-    </p>
   {/if}
 </div>
+
+<ListPagination pagination={data.pagination} url={page.url} />
 
 <style>
   /* A colour and a weight, not an inline style. The cell already carries a

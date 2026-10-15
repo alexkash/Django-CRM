@@ -32,6 +32,12 @@ INSERT_POLICY = "org_insert_check"
 # NOTE: Only include tables that have an org_id column directly
 # Table names must match actual PostgreSQL table names (check via \dt)
 ORG_SCOPED_TABLES = [
+    "legacy_source",
+    "legacy_import_batch",
+    "legacy_record",
+    "legacy_relation",
+    "legacy_file",
+    "legacy_projection",
     # Core business entities
     "lead",
     "accounts",  # Note: plural

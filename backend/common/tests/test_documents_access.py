@@ -434,3 +434,35 @@ class TestDocumentPutSharing:
         doc.refresh_from_db()
         assert doc.title == "Before"
         assert _shared_ids(doc) == {admin_profile.id}
+
+
+@pytest.mark.django_db
+def test_flat_document_pages_cover_both_states_without_hidden_rows(
+    user_client, regular_user, admin_user, org_a, org_b
+):
+    from conftest import rls_org
+
+    with rls_org(org_b):
+        _doc(org_b, admin_user, title="Foreign")
+    visible = [
+        _doc(
+            org_a,
+            regular_user,
+            title=f"Visible {i}",
+            status="active" if i % 2 else "inactive",
+        )
+        for i in range(5)
+    ]
+    _doc(org_a, admin_user, title="Hidden")
+    expected = [
+        str(doc.pk) for doc in sorted(visible, key=lambda doc: doc.pk, reverse=True)
+    ]
+    found = []
+    for offset in [0, 2, 4]:
+        response = user_client.get(f"/api/documents/?flat=true&limit=2&offset={offset}")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["count"] == 5
+        found.extend(str(row["id"]) for row in payload["results"])
+    assert found == expected
+    assert len(set(found)) == 5

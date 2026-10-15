@@ -1,4 +1,5 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
@@ -241,7 +242,9 @@
   saved={data.savedViews}
   onlyFields={data.onlyFields}
   onlyPresets={data.onlyPresets}
-  meta={view === 'board' ? 'Open stages only. Drag a card to change its stage' : 'Sorted by value'}
+  meta={view === 'board'
+    ? 'Open stages only. Drag a card to change its stage'
+    : 'This page sorted by value'}
 />
 
 {#if moveError}
@@ -309,7 +312,9 @@
               <div style="margin-top:9px">
                 <Pill tone={AGING_TONE[d.aging_status]} dot>
                   {AGING_LABEL[d.aging_status] +
-                    (d.aging_status === 'green' ? '' : ` · ${d.days_in_current_stage}d`)}
+                    (d.aging_status === 'green' || d.days_in_current_stage === null
+                      ? ''
+                      : ` · ${d.days_in_current_stage}d`)}
                 </Pill>
               </div>
               <div class="v2-deal-card-foot">
@@ -397,7 +402,7 @@
                   ? 'color:var(--v2-rust);font-weight:600'
                   : 'color:var(--v2-slate)'}
               >
-                {d.days_in_current_stage}d
+                {d.days_in_current_stage == null ? '—' : `${d.days_in_current_stage}d`}
               </td>
               <td data-m="hide"><Avatar name={d.assigned_to} size={22} /></td>
             </tr>
@@ -405,12 +410,10 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      Showing <span class="v2-num">{deals.length}</span> of
-      <span class="v2-num">{count(totals.count)}</span>
-    </p>
   </div>
 {/if}
+
+<ListPagination pagination={data.pagination} url={page.url} />
 
 <style>
   /* One line on a card and in a row: the title can be anything a person

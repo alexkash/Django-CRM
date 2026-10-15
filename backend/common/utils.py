@@ -389,6 +389,7 @@ PERIOD_TYPES = (
 )
 
 CURRENCY_CODES = (
+    ("UAH", _("UAH, Hryvnia")),
     ("USD", _("USD, Dollar")),
     ("EUR", _("EUR, Euro")),
     ("GBP", _("GBP, Pound")),
@@ -406,6 +407,7 @@ CURRENCY_CODES = (
 )
 
 CURRENCY_SYMBOLS = {
+    "UAH": "₴",
     "USD": "$",
     "EUR": "€",
     "GBP": "£",

@@ -1,4 +1,5 @@
 <script>
+  import LegacyHistory from '$lib/v2/components/LegacyHistory.svelte';
   import { resolve } from '$app/paths';
   /**
    * The account is a workspace, not a form.
@@ -91,6 +92,7 @@
 
 <div class="v2-scroll">
   <div class="v2-pad" style="padding-bottom:32px">
+    <LegacyHistory history={data.legacyHistory} model="accounts" id={account.id} />
     <div class="v2-stats" style="margin-bottom:16px">
       <StatCard
         label="Revenue won"

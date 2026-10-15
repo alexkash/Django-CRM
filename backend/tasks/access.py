@@ -26,7 +26,7 @@ creator and grant itself delete.
 """
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Q
+from django.db.models import Q, UUIDField, Value
 from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
 
@@ -40,12 +40,21 @@ from tasks.models import Task
 _DENIED = "You do not have Permission to perform this action"
 
 
-def visible_tasks_qs(profile):
+def _base_visible_tasks_qs(profile):
     """Tasks ``profile`` is allowed to open, the queryset form of `access`."""
     qs = Task.objects.filter(org=profile.org)
     if is_org_admin(profile):
         return qs
     return qs.filter(Q(created_by=profile.user) | Q(assigned_to=profile)).distinct()
+
+
+def visible_tasks_qs(profile):
+    """Native task read rule plus all source parents for migrated followups."""
+    from legacy.access import readable_projection_filter
+
+    return readable_projection_filter(
+        _base_visible_tasks_qs(profile), profile
+    ).annotate(_legacy_readable_profile=Value(profile.pk, output_field=UUIDField()))
 
 
 def get_task_or_404(profile, pk):
@@ -69,9 +78,25 @@ def has_task_access(profile, task):
     """Non-raising form of `access`, for deciding what to put in a response."""
     if is_org_admin(profile):
         return True
-    if profile.user_id == task.created_by_id:
+    basic = profile.user_id == task.created_by_id or profile.id in {
+        p.id for p in task.assigned_to.all()
+    }
+    if not basic:
+        return False
+    if getattr(task, "_legacy_readable_profile", None) == profile.pk:
         return True
-    return profile.id in {p.id for p in task.assigned_to.all()}
+    if hasattr(task, "_legacy_record_id") and task._legacy_record_id is None:
+        return True
+    from legacy.models import LegacyProjection
+
+    if (
+        not hasattr(task, "_legacy_record_id")
+        and not LegacyProjection.objects.filter(
+            org=profile.org, target_model="tasks.Task", target_id=task.pk
+        ).exists()
+    ):
+        return True
+    return visible_tasks_qs(profile).filter(pk=task.pk).exists()
 
 
 def assert_task_access(profile, task):
@@ -84,7 +109,7 @@ def has_task_delete_access(profile, task):
     """Non-raising form of `delete`."""
     if is_org_admin(profile):
         return True
-    return profile.user_id == task.created_by_id
+    return profile.user_id == task.created_by_id and has_task_access(profile, task)
 
 
 def assert_task_delete_access(profile, task):

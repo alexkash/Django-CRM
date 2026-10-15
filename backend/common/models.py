@@ -797,6 +797,10 @@ class Activity(BaseModel):
     """Track user activities across all CRM entities"""
 
     ACTION_CHOICES = (
+        ("LEGACY_CALL", "SuiteCRM call"),
+        ("LEGACY_MEETING", "SuiteCRM meeting"),
+        ("LEGACY_NOTE", "SuiteCRM note"),
+        ("LEGACY_CHANGE", "SuiteCRM change"),
         ("CREATE", "Created"),
         ("UPDATE", "Updated"),
         ("DELETE", "Deleted"),

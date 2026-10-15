@@ -28,7 +28,7 @@ import { loadSavedViews, savedViewActions } from '$lib/server/v2/saved-views.js'
 export async function load({ cookies, url, locals }) {
   const params = invoiceListQuery(url);
 
-  const [{ invoices, totals }, orgPeople, accountList, savedViews] = await Promise.all([
+  const [{ invoices, totals, pagination }, orgPeople, accountList, savedViews] = await Promise.all([
     listInvoices({ cookies }, params),
     getOrgPeopleAndTeams(cookies),
     // A failed account fetch should cost the Account dropdown in the filter
@@ -40,6 +40,7 @@ export async function load({ cookies, url, locals }) {
   return {
     invoices,
     totals,
+    pagination,
     people: orgPeople.people,
     accounts: accountList.accounts ?? [],
     savedViews,

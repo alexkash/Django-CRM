@@ -99,6 +99,24 @@ class DocumentListView(APIView, LimitOffsetPagination):
             if shared_to:
                 queryset = queryset.filter(shared_to__id__in=shared_to)
 
+        if params.get("flat") == "true":
+            # A single ordered window can include active and archived documents.
+            # Keep the original two-envelope response for existing clients.
+            queryset = queryset.distinct()
+            rows = self.paginate_queryset(queryset, self.request, view=self)
+            return {
+                "count": self.count,
+                "results": DocumentSerializer(rows, many=True).data,
+                "totals": {
+                    "count": self.count,
+                    "active": queryset.filter(status="active").count(),
+                    "inactive": queryset.filter(status="inactive").count(),
+                    "unshared": queryset.filter(
+                        shared_to__isnull=True, teams__isnull=True
+                    ).count(),
+                },
+            }
+
         context = {}
         profile_list = Profile.objects.filter(
             is_active=True, org=self.request.profile.org

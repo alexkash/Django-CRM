@@ -35,7 +35,8 @@ export function leadListQuery(url) {
   return copyKeys(buildFilterQuery(LEAD_FIELDS, readFilters(url, 'leads')), url, [
     'search',
     'rating',
-    'limit'
+    'limit',
+    'offset'
   ]);
 }
 
@@ -51,7 +52,8 @@ export function contactListQuery(url) {
     'name',
     'email',
     'phone',
-    'limit'
+    'limit',
+    'offset'
   ]);
   if (url.searchParams.get('inactive') !== '1') params.set('is_active', 'true');
   return params;
@@ -62,7 +64,8 @@ export function accountListQuery(url) {
   return copyKeys(buildFilterQuery(ACCOUNT_FIELDS, readFilters(url, 'accounts')), url, [
     'search',
     'name',
-    'limit'
+    'limit',
+    'offset'
   ]);
 }
 
@@ -76,7 +79,8 @@ export function accountListQuery(url) {
 export function ticketListQuery(url) {
   const params = copyKeys(buildFilterQuery(TICKET_FIELDS, readFilters(url, 'tickets')), url, [
     'search',
-    'limit'
+    'limit',
+    'offset'
   ]);
   if (!params.has('status') && url.searchParams.get('all') !== '1') {
     for (const open of OPEN_STATUSES) params.append('status', open);
@@ -92,6 +96,7 @@ export function ticketListQuery(url) {
  */
 export function invoiceListQuery(url) {
   const params = buildFilterQuery(INVOICE_FIELDS, readFilters(url, 'invoices'));
+  copyKeys(params, url, ['limit', 'offset']);
   params.set('sort', 'due_date');
   return params;
 }
@@ -115,7 +120,7 @@ export function dealListQuery(url, pipelines) {
   const params = copyKeys(
     buildFilterQuery(boardMode ? BOARD_FIELDS : DEAL_FIELDS, readFilters(url, 'pipeline')),
     url,
-    boardMode ? ['search'] : ['search', 'limit', 'open', 'rotten']
+    boardMode ? ['search'] : ['search', 'limit', 'offset', 'open', 'rotten']
   );
 
   const wanted = url.searchParams.get('pipeline');

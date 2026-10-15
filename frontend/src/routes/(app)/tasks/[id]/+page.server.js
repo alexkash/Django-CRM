@@ -1,3 +1,4 @@
+import { entityHistorySection } from '$lib/server/v2/legacy.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { getTask, setTaskDone, updateTask, deleteTask, addTaskNote } from '$lib/server/v2/tasks.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
@@ -13,9 +14,13 @@ import { isOrgAdmin } from '$lib/admin.js';
  * @type {import('./$types').PageServerLoad}
  */
 export async function load({ cookies, locals, params }) {
-  const detail = await getTask({ cookies }, params.id);
+  const [detail, legacyHistory] = await Promise.all([
+    getTask({ cookies }, params.id),
+    entityHistorySection({ cookies }, 'tasks', params.id)
+  ]);
   return {
     ...detail,
+    legacyHistory,
     // Decides what renders, never what is allowed. The API refuses a delete
     // from an assignee with a 403 whatever this says.
     canDelete: isOrgAdmin(/** @type {any} */ (locals).profile)

@@ -99,11 +99,12 @@ export async function load(event) {
     };
   }
 
-  const { results, totals } = await listDeals(event, params);
+  const { results, totals, pagination } = await listDeals(event, params);
   return {
     view,
     deals: results,
     totals,
+    pagination,
     lanes: [],
     onlyFields: undefined,
     onlyPresets: undefined,

@@ -1,3 +1,4 @@
+import { pageQuery, pageState } from '$lib/v2/pagination.js';
 /**
  * Knowledge base: the sixth v2 module wired to the real API.
  *
@@ -92,14 +93,14 @@ function toRow(row) {
  * @param {URLSearchParams} [params]
  */
 export async function listArticles({ cookies }, params) {
-  const query = new URLSearchParams(params ?? undefined);
-  if (!query.has('limit')) query.set('limit', '50');
+  const query = pageQuery(params ?? new URLSearchParams(), 50);
 
   const response = await apiRequest(`/cases/solutions/?${query}`, {}, { cookies });
   const rows = (response.results ?? []).map(toRow);
   const totals = response.totals ?? {};
 
   return {
+    pagination: pageState(query, response.count ?? rows.length, rows.length),
     results: rows,
     totals: {
       count: totals.count ?? rows.length,
