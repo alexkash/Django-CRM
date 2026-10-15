@@ -69,18 +69,10 @@ class SnapshotReader:
 
     def _index(self):
         cache = safe_file(self.root, ".suitecrm-index-v1.sqlite3")
-        if cache.exists():
-            db = sqlite3.connect(cache)
-            try:
-                header = db.execute(
-                    "SELECT value FROM metadata WHERE key=?", ("manifest_hash",)
-                ).fetchone()
-                if not header or header[0] != self.manifest_hash:
-                    raise ValueError("Snapshot index belongs to different input")
-                return db
-            except Exception:
-                db.close()
-                raise
+        # A derived index is not integrity evidence: its contents and header
+        # can change independently of the verified JSONL files. Rebuild once
+        # per reader and atomically replace it; existing readers keep their
+        # own immutable connection while this reader uses verified rows.
         fd, name = tempfile.mkstemp(prefix=".suitecrm-index-", dir=self.root)
         os.close(fd)
         db = sqlite3.connect(name)

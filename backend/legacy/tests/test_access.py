@@ -8,18 +8,20 @@ from legacy.tests.helpers import make_context
 def test_projection_cannot_ground_a_foreign_org_record(
     org_a, org_b, regular_user, user_profile
 ):
+    from conftest import rls_org
     from legacy.models import LegacyProjection, LegacySource
     from tasks.access import visible_tasks_qs
     from tasks.models import Task
 
-    source = LegacySource.objects.create(org=org_b, key="foreign-source")
-    record = LegacyRecord.objects.create(
-        org=org_b,
-        source=source,
-        source_table="accounts",
-        source_pk="foreign",
-        payload_sha256="0" * 64,
-    )
+    with rls_org(org_b):
+        source = LegacySource.objects.create(org=org_b, key="foreign-source")
+        record = LegacyRecord.objects.create(
+            org=org_b,
+            source=source,
+            source_table="accounts",
+            source_pk="foreign",
+            payload_sha256="0" * 64,
+        )
     task = Task.objects.create(
         org=org_a,
         title="Local task",

@@ -18,6 +18,28 @@ def test_stable_id_preserves_source_identity():
     assert stable_id("contacts", "1", "native") != stable_id("contacts", "1", "history")
 
 
+def test_reader_rebuilds_a_modified_index_from_verified_files(tmp_path):
+    import json
+    import sqlite3
+
+    from legacy.importer.identity import fingerprint
+    from legacy.importer.reader import SnapshotReader
+
+    folder = make_snapshot(tmp_path, {"accounts": [{"id": "a", "name": "Original"}]})
+    reader = SnapshotReader(folder)
+    reader.close()
+    with sqlite3.connect(folder / ".suitecrm-index-v1.sqlite3") as db:
+        row = json.loads(db.execute("SELECT raw FROM rows").fetchone()[0])
+        row["values"]["name"] = "Modified cache"
+        row["row_sha256"] = fingerprint(row["values"])
+        db.execute("UPDATE rows SET raw=?", (json.dumps(row),))
+    reader = SnapshotReader(folder)
+    try:
+        assert reader.get("accounts", "a")["values"]["name"] == "Original"
+    finally:
+        reader.close()
+
+
 def test_snapshot_rejects_changed_input_before_db_write(tmp_path):
     try:
         Reader = importlib.import_module("legacy.importer.reader").SnapshotReader
