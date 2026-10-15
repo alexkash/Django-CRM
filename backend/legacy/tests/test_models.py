@@ -124,14 +124,30 @@ def test_unknown_stage_has_no_automatic_probability():
     assert aging_thresholds("unknown", 14, 7) is None
 
 
-def test_unknown_stage_is_not_an_open_contact_deal(org_a,admin_user,admin_client):
+def test_unknown_stage_is_not_an_open_contact_deal(org_a, admin_user, admin_client):
     from contacts.models import Contact
     from opportunity.models import DealPipeline, DealStage, Opportunity
-    contact=Contact.objects.create(org=org_a,first_name='Stage',last_name='Probe')
-    pipeline=DealPipeline.objects.create(org=org_a,name='SuiteCRM')
-    stage=DealStage.objects.create(org=org_a,pipeline=pipeline,code='LEGACY',label='Needs review',kind='unknown')
-    deal=Opportunity(org=org_a,pipeline=pipeline,name='Unclassified deal',stage=stage.code,created_by=admin_user,amount=100,currency='USD')
-    Opportunity.objects.bulk_create([deal]);deal.contacts.add(contact)
-    result=admin_client.get(f'/api/contacts/{contact.id}/')
-    assert result.status_code==200
-    assert result.data['open_deals']['count']==0
+
+    contact = Contact.objects.create(org=org_a, first_name="Stage", last_name="Probe")
+    pipeline = DealPipeline.objects.create(org=org_a, name="SuiteCRM")
+    stage = DealStage.objects.create(
+        org=org_a,
+        pipeline=pipeline,
+        code="LEGACY",
+        label="Needs review",
+        kind="unknown",
+    )
+    deal = Opportunity(
+        org=org_a,
+        pipeline=pipeline,
+        name="Unclassified deal",
+        stage=stage.code,
+        created_by=admin_user,
+        amount=100,
+        currency="USD",
+    )
+    Opportunity.objects.bulk_create([deal])
+    deal.contacts.add(contact)
+    result = admin_client.get(f"/api/contacts/{contact.id}/")
+    assert result.status_code == 200
+    assert result.data["open_deals"]["count"] == 0
