@@ -33,7 +33,9 @@ docker compose stop backend worker beat > "$work/rollback/stop.log" 2>&1
 docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='crm_db' AND pid<>pg_backend_pid()" </dev/null > "$work/rollback/connections.log" 2>&1
 docker compose exec -T db dropdb -U postgres crm_db </dev/null
 docker compose exec -T db createdb -U postgres crm_db </dev/null
-docker compose exec -T db pg_restore -U postgres --no-owner -d crm_db < "$work/rollback/database.dump" > "$work/rollback/restore.log" 2>&1
+# Same-server recovery retains original crm_app ownership and ACLs. The runtime
+# role must retain owner-only ALTER rights for subsequent Django migrations.
+docker compose exec -T db pg_restore -U postgres -d crm_db < "$work/rollback/database.dump" > "$work/rollback/restore.log" 2>&1
 cp "$work/before/compose.yaml" compose.yaml
 cat "$work/before/selfhost_settings.py" > deploy/selfhost_settings.py
 cp "$work/before/backup.sh" deploy/backup.sh
