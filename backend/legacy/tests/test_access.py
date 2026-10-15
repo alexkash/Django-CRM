@@ -5,6 +5,45 @@ from legacy.models import LegacyRecord
 from legacy.tests.helpers import make_context
 
 
+def test_projection_cannot_ground_a_foreign_org_record(
+    org_a, org_b, regular_user, user_profile
+):
+    from legacy.models import LegacyProjection, LegacySource
+    from tasks.access import visible_tasks_qs
+    from tasks.models import Task
+
+    source = LegacySource.objects.create(org=org_b, key="foreign-source")
+    record = LegacyRecord.objects.create(
+        org=org_b,
+        source=source,
+        source_table="accounts",
+        source_pk="foreign",
+        payload_sha256="0" * 64,
+    )
+    task = Task.objects.create(
+        org=org_a,
+        title="Local task",
+        created_by=regular_user,
+        status="New",
+        priority="High",
+    )
+    # Simulate a malformed mapping inserted outside model validation. Even on
+    # SQLite without RLS, it must never confer cross-organization readability.
+    LegacyProjection.objects.bulk_create(
+        [
+            LegacyProjection(
+                org=org_a,
+                record=record,
+                target_model="tasks.Task",
+                target_id=task.pk,
+                role="native",
+                projected_sha256="0" * 64,
+            )
+        ]
+    )
+    assert not visible_tasks_qs(user_profile).filter(pk=task.pk).exists()
+
+
 def linked_context(org, tmp_path, owner):
     from legacy.importer.crm_records import project_accounts
     from legacy.importer.relations import project_relations

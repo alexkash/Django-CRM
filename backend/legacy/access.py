@@ -126,7 +126,8 @@ def _readable_records_cte(profile):
         SELECT id FROM anchors
         UNION SELECT e.child FROM edges e JOIN grounded g ON e.parent=g.id
     ), readable(id) AS (
-        SELECT id FROM grounded WHERE id NOT IN (SELECT id FROM bad)
+        SELECT g.id FROM grounded g JOIN legacy_record r ON r.id=g.id
+        WHERE r.org_id=%s AND g.id NOT IN (SELECT id FROM bad)
     )
     """
     org_param = LegacyRecord._meta.get_field("org").get_db_prep_value(
@@ -137,6 +138,7 @@ def _readable_records_cte(profile):
         *good_params,
         org_param,
         *ACTOR_ROLES,
+        org_param,
         org_param,
     )
     return sql, params
