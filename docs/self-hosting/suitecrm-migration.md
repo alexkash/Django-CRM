@@ -4,7 +4,7 @@ The migration preserves an immutable T0 snapshot. SuiteCRM stays online; this is
 
 The importer is specific to the reviewed `suitecrm-coloris` source and its existing destination organization. Its global source identity deliberately prevents rebinding that snapshot to another organization. Importing another source or destination requires a separately reviewed identity namespace and mapping; changing the namespace of this deployment would invalidate its existing deterministic IDs and reconciliation records.
 
-Each reader rebuilds its derived SQLite index from the hash-verified JSONL files. An existing index and its metadata are never accepted as proof of the source contents.
+Each reader rebuilds its derived SQLite index from the hash-verified JSONL files in its own private temporary directory, removed when the reader closes. The source snapshot remains read-only. An existing index and its metadata are never accepted as proof of the source contents.
 
 ## Evidence and safety
 

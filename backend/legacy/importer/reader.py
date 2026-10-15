@@ -68,12 +68,12 @@ class SnapshotReader:
         self.db = self._index()
 
     def _index(self):
-        cache = safe_file(self.root, ".suitecrm-index-v1.sqlite3")
         # A derived index is not integrity evidence: its contents and header
         # can change independently of the verified JSONL files. Rebuild once
-        # per reader and atomically replace it; existing readers keep their
-        # own immutable connection while this reader uses verified rows.
-        fd, name = tempfile.mkstemp(prefix=".suitecrm-index-", dir=self.root)
+        # per reader in a private writable directory; the snapshot stays
+        # read-only and no other reader's index is reused or replaced.
+        self._index_dir = tempfile.TemporaryDirectory(prefix="suitecrm-index-")
+        fd, name = tempfile.mkstemp(prefix="rows-", dir=self._index_dir.name)
         os.close(fd)
         db = sqlite3.connect(name)
         try:
@@ -112,13 +112,10 @@ class SnapshotReader:
                 ("manifest_hash", self.manifest_hash),
             )
             db.commit()
-            db.close()
-            os.replace(name, cache)
-            cache.chmod(0o600)
-            return sqlite3.connect(cache)
+            return db
         except Exception:
             db.close()
-            Path(name).unlink(missing_ok=True)
+            self._index_dir.cleanup()
             raise
 
     def rows(self, table, active_only=False):
@@ -148,3 +145,4 @@ class SnapshotReader:
 
     def close(self):
         self.db.close()
+        self._index_dir.cleanup()

@@ -27,6 +27,8 @@ def test_reader_rebuilds_a_modified_index_from_verified_files(tmp_path):
 
     folder = make_snapshot(tmp_path, {"accounts": [{"id": "a", "name": "Original"}]})
     reader = SnapshotReader(folder)
+    with sqlite3.connect(folder / ".suitecrm-index-v1.sqlite3") as db:
+        reader.db.backup(db)
     reader.close()
     with sqlite3.connect(folder / ".suitecrm-index-v1.sqlite3") as db:
         row = json.loads(db.execute("SELECT raw FROM rows").fetchone()[0])
@@ -38,6 +40,25 @@ def test_reader_rebuilds_a_modified_index_from_verified_files(tmp_path):
         assert reader.get("accounts", "a")["values"]["name"] == "Original"
     finally:
         reader.close()
+
+
+def test_reader_accepts_a_read_only_snapshot(tmp_path):
+    import os
+
+    from legacy.importer.reader import SnapshotReader
+
+    if os.geteuid() == 0:
+        pytest.skip("Root bypasses directory permission bits; use a read-only mount")
+    folder = make_snapshot(tmp_path, {"accounts": [{"id": "a", "name": "Original"}]})
+    folder.chmod(0o500)
+    try:
+        reader = SnapshotReader(folder)
+        try:
+            assert reader.get("accounts", "a")["values"]["name"] == "Original"
+        finally:
+            reader.close()
+    finally:
+        folder.chmod(0o700)
 
 
 def test_snapshot_rejects_changed_input_before_db_write(tmp_path):
@@ -65,6 +86,5 @@ def test_same_sql_with_changed_manifest_cannot_rebind_source(org_a, tmp_path):
     manifest["safe_config"]["default_currency_iso4217"] = "EUR"
     path.write_text(json.dumps(manifest))
     ctx.reader.close()
-    (ctx.reader.root / ".suitecrm-index-v1.sqlite3").unlink()
     with pytest.raises(ImportConflict):
         ImportContext(org_a, SnapshotReader(ctx.reader.root))
