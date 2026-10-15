@@ -766,6 +766,8 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     def get_closure(self, obj):
         if not obj.issuer_id:
             return None
+        if "closure_summaries" in self.context:
+            return self.context["closure_summaries"][obj.pk]
         from invoices.billing.services import get_closure_summary
 
         return get_closure_summary(obj)

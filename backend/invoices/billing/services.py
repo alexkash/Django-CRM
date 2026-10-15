@@ -91,9 +91,13 @@ def _locked_act(actor, act_id):
     )
     if error:
         raise NotFound("Act not found")
-    act = ServiceAct.objects.select_for_update().get(
-        org=actor.profile.org, pk=act_id, invoice=invoice
+    act = (
+        ServiceAct.objects.select_for_update()
+        .filter(org=actor.profile.org, pk=act_id, invoice=invoice)
+        .first()
     )
+    if act is None:
+        raise NotFound("Act not found")
     act.invoice = invoice
     return act
 
@@ -117,15 +121,18 @@ def _issued_allocations(invoice):
     }
 
 
-def get_closure_summary(invoice):
+def get_closure_summary(invoice, *, issued=None, lines=None):
     from decimal import Decimal
 
     from .money import IssuedAllocation
 
-    issued = _issued_allocations(invoice)
+    if issued is None:
+        issued = _issued_allocations(invoice)
+    if lines is None:
+        lines = invoice.line_items.order_by("order", "id")
     rows = []
     closed_net = closed_vat = Decimal(0)
-    for line in invoice.line_items.order_by("order", "id"):
+    for line in lines:
         current = issued.get(line.pk, IssuedAllocation())
         closed_net += current.net
         closed_vat += current.vat
@@ -150,6 +157,42 @@ def get_closure_summary(invoice):
         "remaining_vat": f"{invoice.tax_amount - closed_vat:.2f}",
         "remaining_total": f"{invoice.total_amount - closed_net - closed_vat:.2f}",
         "lines": rows,
+    }
+
+
+def get_closure_summaries(invoices):
+    """Build a visible invoice page from one allocation query and prefetched lines."""
+    from django.db.models import Sum
+
+    from .models import ServiceActLine
+    from .money import IssuedAllocation
+
+    invoices = [invoice for invoice in invoices if invoice.issuer_id]
+    if not invoices:
+        return {}
+    allocations = {invoice.pk: {} for invoice in invoices}
+    rows = (
+        ServiceActLine.objects.filter(
+            org_id__in={invoice.org_id for invoice in invoices},
+            act__invoice_id__in=allocations,
+            act__status="Issued",
+        )
+        .values("act__invoice_id", "source_line_id")
+        .annotate(q=Sum("quantity"), net=Sum("net_amount"), vat=Sum("vat_amount"))
+    )
+    for row in rows:
+        allocations[row["act__invoice_id"]][row["source_line_id"]] = IssuedAllocation(
+            row["q"], row["net"], row["vat"]
+        )
+    return {
+        invoice.pk: get_closure_summary(
+            invoice,
+            issued=allocations[invoice.pk],
+            lines=sorted(
+                invoice.line_items.all(), key=lambda line: (line.order, line.pk)
+            ),
+        )
+        for invoice in invoices
     }
 
 

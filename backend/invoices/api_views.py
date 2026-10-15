@@ -172,7 +172,7 @@ class InvoiceListView(APIView, LimitOffsetPagination):
         """Every invoice the caller may open, before the query string."""
         return (
             visible_invoices_qs(self.request.profile)
-            .select_related("account", "contact", "opportunity", "created_by")
+            .select_related("account", "contact", "opportunity", "created_by", "issuer")
             .prefetch_related("line_items", "payments", "assigned_to")
         )
 
@@ -181,7 +181,13 @@ class InvoiceListView(APIView, LimitOffsetPagination):
         base = self.get_queryset()
         queryset = filter_invoices(base, request.query_params)
         results = self.paginate_queryset(queryset, request, view=self)
-        serializer = InvoiceListSerializer(results, many=True)
+        from invoices.billing.services import get_closure_summaries
+
+        serializer = InvoiceListSerializer(
+            results,
+            many=True,
+            context={"closure_summaries": get_closure_summaries(results)},
+        )
 
         return Response(
             {
