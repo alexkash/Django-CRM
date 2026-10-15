@@ -43,6 +43,7 @@ import { viewerIsAdmin } from './organization.js';
  */
 export const CURRENCY_CHOICES = [
   { code: 'USD', label: 'USD, Dollar' },
+  { code: 'UAH', label: 'UAH, Hryvnia' },
   { code: 'EUR', label: 'EUR, Euro' },
   { code: 'GBP', label: 'GBP, Pound' },
   { code: 'INR', label: 'INR, Rupee' },

@@ -34,13 +34,15 @@
   const KINDS = /** @type {const} */ ([
     ['open', 'Open'],
     ['won', 'Won'],
-    ['lost', 'Lost']
+    ['lost', 'Lost'],
+    ['unknown', 'Needs classification']
   ]);
   const KIND_LABEL = Object.fromEntries(KINDS);
   const KIND_TONE = /** @type {Record<string, 'slate'|'moss'|'rust'>} */ ({
     open: 'slate',
     won: 'moss',
-    lost: 'rust'
+    lost: 'rust',
+    unknown: 'slate'
   });
 
   let pipeline = $derived(data.pipeline);
@@ -70,6 +72,7 @@
 
   /** @param {any} s */
   function rotting(s) {
+    if (s.kind === 'unknown') return 'Needs classification, does not age';
     if (s.kind !== 'open') return 'Closed, does not age';
     if (!s.expected_days) return 'Never';
     const warn = s.warning_days ? `, warns at ${s.warning_days}d` : '';

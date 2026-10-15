@@ -91,7 +91,8 @@
         // one level of navigation, and the tab strip carries the rest.
         { href: '/tickets', label: 'Tickets', icon: LifeBuoy, count: 'tickets' },
         { href: '/solutions', label: 'Knowledge base', icon: BookOpen },
-        { href: '/documents', label: 'Documents', icon: FileText }
+        { href: '/documents', label: 'Documents', icon: FileText },
+        { href: '/legacy', label: 'SuiteCRM history', icon: Clock }
       ]
     },
     {

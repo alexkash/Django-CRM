@@ -37,8 +37,13 @@ export const OPPORTUNITY_TYPE_LABEL = {
 };
 
 /** Opportunity.aging_status. The API returns these three strings verbatim. */
-export const AGING_TONE = { green: 'slate', yellow: 'clay', red: 'rust' };
-export const AGING_LABEL = { green: 'On pace', yellow: 'Past expected', red: 'Stalled' };
+export const AGING_TONE = { green: 'slate', yellow: 'clay', red: 'rust', unknown: 'slate' };
+export const AGING_LABEL = {
+  green: 'On pace',
+  yellow: 'Past expected',
+  red: 'Stalled',
+  unknown: 'Needs classification'
+};
 
 export const LEAD_STATUS_TONE = {
   assigned: 'slate',

@@ -17,7 +17,9 @@
   let index = $derived(steps.findIndex((s) => s.code === code));
 </script>
 
-{#if !closed}
+{#if kind === 'unknown'}
+  <span class="v2-sub">{name} · Needs classification</span>
+{:else if !closed}
   <div class="v2-meter" role="img" aria-label="Stage: {name}">
     {#each steps as step, i (step.code)}
       <i class={i <= index ? 'on' : ''}></i>

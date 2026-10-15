@@ -309,7 +309,9 @@
               <div style="margin-top:9px">
                 <Pill tone={AGING_TONE[d.aging_status]} dot>
                   {AGING_LABEL[d.aging_status] +
-                    (d.aging_status === 'green' ? '' : ` · ${d.days_in_current_stage}d`)}
+                    (d.aging_status === 'green' || d.days_in_current_stage === null
+                      ? ''
+                      : ` · ${d.days_in_current_stage}d`)}
                 </Pill>
               </div>
               <div class="v2-deal-card-foot">

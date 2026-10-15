@@ -1,4 +1,5 @@
 <script>
+  import LegacyHistory from '$lib/v2/components/LegacyHistory.svelte';
   import { resolve } from '$app/paths';
   /**
    * One task: what it is, what it is attached to, who is on it, and the one
@@ -190,6 +191,7 @@
   <div class="v2-main">
     <div class="v2-scroll">
       <div class="v2-pad" style="padding-top:16px;padding-bottom:32px">
+        <LegacyHistory history={data.legacyHistory} model="tasks" id={task.id} />
         {#if form?.error}
           <p style="color:var(--v2-rust);font-size:12.5px;margin:0 0 14px" role="alert">
             {form.error}

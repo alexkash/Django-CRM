@@ -211,3 +211,35 @@ describe('next activity', () => {
     expect(results[0].next_activity).toBeUndefined();
   });
 });
+
+it('does not turn an unclassified source stage into a paced deal with zero probability', async () => {
+  apiRequest.mockResolvedValue({
+    opportunities: [
+      {
+        id: 'legacy',
+        stage: 'OLD',
+        stage_kind: 'unknown',
+        probability: null,
+        aging_status: null,
+        days_in_stage: null
+      }
+    ],
+    totals: null
+  });
+  const { results } = await listDeals(event);
+  expect(results[0]).toMatchObject({
+    stage_kind: 'unknown',
+    probability: null,
+    aging_status: 'unknown',
+    days_in_current_stage: null
+  });
+});
+
+it('keeps an explicitly recorded probability on an unclassified source stage', async () => {
+  apiRequest.mockResolvedValue({
+    opportunities: [{ id: 'legacy-explicit', stage_kind: 'unknown', probability: 50 }],
+    totals: null
+  });
+  const { results } = await listDeals(event);
+  expect(results[0].probability).toBe(50);
+});

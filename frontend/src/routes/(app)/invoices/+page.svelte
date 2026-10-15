@@ -69,6 +69,7 @@
     <span class="v2-num">{money(m.outstanding, cur)}</span> outstanding
   {/snippet}
   {#snippet actions()}
+    <a class="v2-btn" href="{resolve('/legacy')}?kind=invoice">SuiteCRM history</a>
     <!-- The page's own query string: the export rebuilds the same API query
          from it, so the file holds every row this list would page through. -->
     <a

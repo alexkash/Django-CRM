@@ -1,10 +1,15 @@
+import { entityHistorySection } from '$lib/server/v2/legacy.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { addLeadNote, convertLead, deleteLead, getLead } from '$lib/server/v2/leads.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, params }) {
-  return await getLead({ cookies }, params.id);
+  const [detail, legacyHistory] = await Promise.all([
+    getLead({ cookies }, params.id),
+    entityHistorySection({ cookies }, 'leads', params.id)
+  ]);
+  return { ...detail, legacyHistory };
 }
 
 /** @type {import('./$types').Actions} */
