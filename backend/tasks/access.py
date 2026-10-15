@@ -26,7 +26,7 @@ creator and grant itself delete.
 """
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Q
+from django.db.models import Q, UUIDField, Value
 from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
 
@@ -52,7 +52,9 @@ def visible_tasks_qs(profile):
     """Native task read rule plus all source parents for migrated followups."""
     from legacy.access import readable_projection_filter
 
-    return readable_projection_filter(_base_visible_tasks_qs(profile), profile)
+    return readable_projection_filter(
+        _base_visible_tasks_qs(profile), profile
+    ).annotate(_legacy_readable_profile=Value(profile.pk, output_field=UUIDField()))
 
 
 def get_task_or_404(profile, pk):
@@ -81,11 +83,18 @@ def has_task_access(profile, task):
     }
     if not basic:
         return False
+    if getattr(task, "_legacy_readable_profile", None) == profile.pk:
+        return True
+    if hasattr(task, "_legacy_record_id") and task._legacy_record_id is None:
+        return True
     from legacy.models import LegacyProjection
 
-    if not LegacyProjection.objects.filter(
-        org=profile.org, target_model="tasks.Task", target_id=task.pk
-    ).exists():
+    if (
+        not hasattr(task, "_legacy_record_id")
+        and not LegacyProjection.objects.filter(
+            org=profile.org, target_model="tasks.Task", target_id=task.pk
+        ).exists()
+    ):
         return True
     return visible_tasks_qs(profile).filter(pk=task.pk).exists()
 

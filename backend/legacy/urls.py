@@ -15,6 +15,6 @@ urlpatterns = [
     path("records/<uid:pk>/", RecordDetail.as_view()),
     path("files/", FileList.as_view()),
     path("files/<uid:pk>/download/", FileDownload.as_view()),
-    path("entities/<str:model>/<uid:pk>/history/", EntityHistory.as_view()),
+    path("entities/<slug:model>/<uid:pk>/history/", EntityHistory.as_view()),
     path("batches/<uid:pk>/report/", BatchReport.as_view()),
 ]

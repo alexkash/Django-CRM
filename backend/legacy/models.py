@@ -31,7 +31,10 @@ class LegacySource(LegacyBase):
 
     class Meta:
         db_table = "legacy_source"
-        indexes = [models.Index(fields=["org", "key"])]
+        indexes = [
+            models.Index(fields=["org", "-created_at"]),
+            models.Index(fields=["org", "key"]),
+        ]
 
     def clean(self):
         super().clean()
@@ -60,7 +63,10 @@ class LegacyImportBatch(LegacyBase):
                 name="legacy_unique_snapshot_batch",
             )
         ]
-        indexes = [models.Index(fields=["org", "state"])]
+        indexes = [
+            models.Index(fields=["org", "-created_at"]),
+            models.Index(fields=["org", "state"]),
+        ]
 
 
 class LegacyRecord(LegacyBase):
@@ -88,6 +94,7 @@ class LegacyRecord(LegacyBase):
             )
         ]
         indexes = [
+            models.Index(fields=["org", "-created_at"]),
             models.Index(fields=["org", "source_table", "source_deleted"]),
             models.Index(fields=["org", "kind", "source_created_at"]),
         ]
@@ -138,6 +145,7 @@ class LegacyRelation(LegacyBase):
             )
         ]
         indexes = [
+            models.Index(fields=["org", "-created_at"]),
             models.Index(fields=["org", "from_record"]),
             models.Index(fields=["org", "to_record"]),
         ]
@@ -166,7 +174,10 @@ class LegacyFile(LegacyBase):
                 fields=["source", "original_name"], name="legacy_unique_source_file"
             )
         ]
-        indexes = [models.Index(fields=["org", "record"])]
+        indexes = [
+            models.Index(fields=["org", "-created_at"]),
+            models.Index(fields=["org", "record"]),
+        ]
 
 
 class LegacyProjection(LegacyBase):
@@ -185,4 +196,7 @@ class LegacyProjection(LegacyBase):
                 fields=["record", "role"], name="legacy_unique_projection_role"
             )
         ]
-        indexes = [models.Index(fields=["org", "target_model", "target_id"])]
+        indexes = [
+            models.Index(fields=["org", "-created_at"]),
+            models.Index(fields=["org", "target_model", "target_id"]),
+        ]

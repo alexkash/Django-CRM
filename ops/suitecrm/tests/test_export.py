@@ -3,10 +3,10 @@
 import base64
 import importlib
 import json
+import unittest
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 
 
 def subject():

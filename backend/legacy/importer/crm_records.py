@@ -1,5 +1,7 @@
 """Native projections for editable CRM entities, preserving all source values separately."""
 
+from decimal import Decimal, InvalidOperation
+
 from accounts.models import Account
 from contacts.models import Contact
 from invoices.models import Product
@@ -195,14 +197,16 @@ def project_opportunities(ctx, rows=None):
             ctx.write("opportunities", row, Opportunity(id=old))
             continue
         pipeline, stage = deal_stage(ctx, d.get("sales_stage") or "")
-        probability = d.get("probability")
         try:
+            value = Decimal(str(d.get("probability")))
             probability = (
-                int(probability)
-                if probability is not None and 0 <= int(probability) <= 100
+                int(value)
+                if value.is_finite()
+                and 0 <= value <= 100
+                and value == value.to_integral_value()
                 else None
             )
-        except (ValueError, TypeError):
+        except (InvalidOperation, ValueError, TypeError):
             probability = None
         closed = source_time(d.get("date_closed"))
         obj = Opportunity(

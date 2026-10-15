@@ -101,7 +101,8 @@ def visible_records(profile):
         Q(source_table__in=["aos_invoices", "aos_quotes"]) & ~Q(id__in=financial_owned)
     )
     eligible_sql, eligible_params = eligible.values("id").query.sql_with_params()
-    good_sql, good_params = good.values("record_id").query.sql_with_params()
+    anchors = good.filter(role="native", record__source_table__in=NATIVE_TABLES)
+    good_sql, good_params = anchors.values("record_id").query.sql_with_params()
     # Graph edges represent dependencies, not general undirected relationships.
     # Join/body evidence also depends on the ends it describes. UNION terminates
     # cycles; a cycle with no readable native anchor never becomes grounded.

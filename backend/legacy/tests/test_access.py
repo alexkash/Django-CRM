@@ -171,3 +171,36 @@ def test_native_feed_and_followup_do_not_bypass_parent_history_policy(
     Account.objects.filter(org=org_a).update(created_by=regular_user)
     assert _readable_activities(user_profile).count() == 2
     assert visible_tasks_qs(user_profile).count() == 1
+
+
+def test_unparented_planned_event_cannot_gain_history_access_from_its_followup(
+    org_a, tmp_path, user_profile
+):
+    from legacy.access import visible_records
+    from legacy.importer.history import project_events
+    from tasks.access import visible_tasks_qs
+    from tasks.models import Task
+
+    ctx = make_context(
+        org_a,
+        tmp_path,
+        {
+            "calls": [
+                {
+                    "id": "orphan-planned",
+                    "name": "Unparented planned",
+                    "status": "Planned",
+                    "date_start": "2020-01-01 10:00:00",
+                }
+            ]
+        },
+    )
+    project_events(ctx)
+    task = Task.objects.get(org=org_a)
+    task.assigned_to.add(user_profile)
+    assert (
+        not visible_records(user_profile)
+        .filter(pk=ctx.record_id("calls", "orphan-planned"))
+        .exists()
+    )
+    assert not visible_tasks_qs(user_profile).filter(pk=task.pk).exists()

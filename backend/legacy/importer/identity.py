@@ -44,4 +44,8 @@ def object_fingerprint(obj):
         for f in obj._meta.concrete_fields
         if f.name not in volatile
     }
+    data["_relations"] = {
+        f.name: sorted(str(item.pk) for item in getattr(obj, f.name).all())
+        for f in obj._meta.many_to_many
+    }
     return fingerprint(data)

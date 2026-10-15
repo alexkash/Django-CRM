@@ -14,7 +14,7 @@ from .relations import NATIVE, add_members, native_parents
 
 def project_task(ctx, table, row, status, role):
     d = row["values"]
-    start = source_time(d.get("date_start") or d.get("date_due"))
+    start = source_time(d.get("date_due") if table == "tasks" else d.get("date_start"))
     timezone = (
         ctx.reader.manifest.get("safe_config", {}).get("default_timezone") or "UTC"
     )
@@ -40,12 +40,15 @@ def project_task(ctx, table, row, status, role):
     if len(title) > 200:
         # The full title remains in source history; do not truncate native fields.
         title = f"SuiteCRM {table}:{row['source_id']}"
+    priority = d.get("priority") if table == "tasks" else "Medium"
+    if priority not in dict(Task.PRIORITY_CHOICES):
+        raise ImportConflict("Unmapped source task priority")
     task = Task(
         id=stable_id(table, row["source_id"], role),
         org=ctx.org,
         title=title,
         status=status,
-        priority="Medium",
+        priority=priority,
         due_date=start.astimezone(ZoneInfo(timezone)).date() if start else None,
         description=d.get("description"),
         created_by_id=ctx.actor(d),
@@ -59,6 +62,8 @@ def project_task(ctx, table, row, status, role):
         "assigned_to",
         [ctx.native_id("users", d.get("assigned_user_id"), "profile")],
     )
+
+    ctx.restamp_projection(ctx.record_id(table, row["source_id"]), role)
 
 
 def project_events(ctx):

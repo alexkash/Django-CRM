@@ -124,3 +124,29 @@ def test_sugarfeed_and_audit_keep_original_date_without_dispatch(org_a, tmp_path
     assert {event.created_at.year for event in events} == {2016, 2017}
     assert not events.exclude(action="LEGACY_CHANGE").exists()
     assert not WebhookDelivery.objects.filter(org=org_a).exists()
+
+
+def test_completed_source_task_uses_due_date_and_recorded_priority(org_a, tmp_path):
+    from legacy.importer.history import project_events
+
+    ctx = make_context(
+        org_a,
+        tmp_path,
+        {
+            "tasks": [
+                {
+                    "id": "t",
+                    "name": "Original task",
+                    "status": "Completed",
+                    "priority": "High",
+                    "date_start": "2017-01-10 10:00:00",
+                    "date_due": "2017-02-11 10:00:00",
+                }
+            ]
+        },
+    )
+    project_events(ctx)
+    task = Task.objects.get(org=org_a)
+    assert task.status == "Completed"
+    assert task.priority == "High"
+    assert str(task.due_date) == "2017-02-11"

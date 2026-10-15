@@ -1,5 +1,6 @@
 """Shared import state and explicit projection writes; no request-based side effects."""
 
+from collections import defaultdict
 from datetime import datetime, timezone
 from itertools import islice
 
@@ -54,7 +55,10 @@ class ImportContext:
             defaults={
                 "org": org,
                 "version": "7.12.6",
-                "metadata": {"snapshot_sha256": reader.manifest["snapshot_sha256"]},
+                "metadata": {
+                    "snapshot_sha256": reader.manifest["snapshot_sha256"],
+                    "manifest_sha256": reader.manifest_hash,
+                },
             },
         )
         if self.source.org_id != org.id:
@@ -66,13 +70,42 @@ class ImportContext:
             raise ImportConflict(
                 "A different snapshot requires a separately reviewed update migration"
             )
+        if self.source.metadata.get("manifest_sha256") != reader.manifest_hash:
+            raise ImportConflict("Source manifest differs from the bound snapshot")
+        self._email_index = None
+        self.reload()
+
+    def reload(self):
+        self.source.refresh_from_db()
         self.projections = {
             (p.record_id, p.role): p
             for p in LegacyProjection.objects.filter(
-                org=org, record__source=self.source
+                org=self.org, record__source=self.source
             )
         }
-        self._email_index = None
+        for name in ("field_definitions", "lead_stage_cache", "deal_stage_cache"):
+            self.__dict__.pop(name, None)
+
+    def restamp_projections(self):
+        grouped = defaultdict(list)
+        for mapping in self.projections.values():
+            grouped[mapping.target_model].append(mapping)
+        for label, mappings in grouped.items():
+            model = apps.get_model(label)
+            for block in chunks(mappings):
+                objects = {
+                    obj.pk: obj
+                    for obj in model.objects.filter(
+                        pk__in=[p.target_id for p in block]
+                    ).prefetch_related(*[f.name for f in model._meta.many_to_many])
+                }
+                for mapping in block:
+                    mapping.projected_sha256 = object_fingerprint(
+                        objects[mapping.target_id]
+                    )
+                LegacyProjection.objects.bulk_update(
+                    block, ["projected_sha256"], batch_size=300
+                )
 
     def record_id(self, table, key):
         return stable_id(table, str(key), "history")

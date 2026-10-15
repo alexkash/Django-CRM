@@ -130,3 +130,4 @@ def project_communications(ctx):
         add_members(
             message, "recipients", [pk for tab, pk in parents if tab == "contacts"]
         )
+        ctx.restamp_projection(ctx.record_id("emails", row["source_id"]))

@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from django.apps import apps
 
-from legacy.models import LegacyRecord, LegacyRelation
+from legacy.models import LegacyRelation
 
 from .identity import stable_id
 
@@ -72,12 +72,11 @@ def native_parents(ctx, table, key):
     return list(found.values())
 
 
-def project_relations(ctx):
+def walk_relations(ctx, consume):
+    """Stream expected edges from immutable source identities, independent of target state."""
     records = {
-        (t, k): (pk, deleted)
-        for t, k, pk, deleted in LegacyRecord.objects.filter(
-            source=ctx.source
-        ).values_list("source_table", "source_pk", "pk", "source_deleted")
+        (t, k): (ctx.record_id(t, k), bool(deleted))
+        for t, k, deleted in ctx.reader.identities()
     }
     # MySQL source references compare case-insensitively. Only use an unambiguous
     # spelling match; exact source IDs and their evidence never change.
@@ -127,9 +126,7 @@ def project_relations(ctx):
             flush()
 
     def flush():
-        LegacyRelation.objects.bulk_create(
-            list(pending.values()), ignore_conflicts=True, batch_size=500
-        )
+        consume(list(pending.values()))
         pending.clear()
 
     explicit = {
@@ -272,6 +269,15 @@ def project_relations(ctx):
             for actor in ("created_by", "modified_user_id", "assigned_user_id"):
                 edge(row, table, key, "users", d.get(actor), actor)
     flush()
+
+
+def project_relations(ctx):
+    walk_relations(
+        ctx,
+        lambda block: LegacyRelation.objects.bulk_create(
+            block, ignore_conflicts=True, batch_size=500
+        ),
+    )
     project_native_links(ctx)
 
 
@@ -300,8 +306,8 @@ def project_native_links(ctx):
                 model.objects.filter(pk=pk).update(account_id=account_id)
                 if table == "contacts":
                     add_members(Account.objects.get(pk=account_id), "contacts", [pk])
-                ctx.restamp_projection(ctx.record_id(table, row["source_id"]))
             if hasattr(obj, "contacts"):
                 add_members(
                     obj, "contacts", [key for tab, key in parents if tab == "contacts"]
                 )
+    ctx.restamp_projections()

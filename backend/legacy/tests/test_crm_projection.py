@@ -273,3 +273,29 @@ def test_unused_source_dropdown_choices_are_preserved(org_a, tmp_path):
         {"value": "estaff", "label": "E-Staff"},
         {"value": "unused", "label": "Unused option"},
     ]
+
+
+def test_fractional_probability_is_preserved_only_in_history_not_truncated(
+    org_a, tmp_path
+):
+    from legacy.importer.crm_records import project_opportunities
+
+    ctx = make_context(
+        org_a,
+        tmp_path,
+        {
+            "opportunities": [
+                {
+                    "id": "fractional",
+                    "name": "Fractional confidence",
+                    "sales_stage": "Unknown",
+                    "probability": 13.5,
+                }
+            ]
+        },
+    )
+    project_opportunities(ctx)
+    assert Opportunity.objects.get(org=org_a).probability is None
+    assert (
+        ctx.reader.get("opportunities", "fractional")["values"]["probability"] == 13.5
+    )

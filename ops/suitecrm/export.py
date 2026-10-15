@@ -1,18 +1,19 @@
 """Lossless, credential-filtered SuiteCRM snapshot export. Never executes PHP."""
 
 from __future__ import annotations
+
 import argparse
 import base64
-from collections import defaultdict
-from datetime import date, datetime, timezone
-from decimal import Decimal
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import sys
 import tarfile
+from collections import defaultdict
+from datetime import date, datetime, timezone
+from decimal import Decimal
+from pathlib import Path
 
 
 def _json_value(value):

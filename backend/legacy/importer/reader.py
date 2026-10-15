@@ -140,6 +140,11 @@ class SnapshotReader:
         for item in self.db.execute(query, (table,)):
             yield json.loads(item[0])
 
+    def identities(self):
+        return self.db.execute(
+            "SELECT table_name,source_id,deleted FROM rows ORDER BY table_name,source_id"
+        )
+
     def get(self, table, source_id):
         if source_id in (None, ""):
             return None
