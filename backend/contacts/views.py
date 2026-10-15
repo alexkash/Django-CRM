@@ -46,7 +46,7 @@ from contacts.tasks import send_email_to_assigned_user
 from opportunity.access import visible_deals_qs
 from opportunity.models import Opportunity, stage_kind_q
 from opportunity.stages import stage_index
-from opportunity.workflow import CLOSED_KINDS
+from opportunity.workflow import OPEN
 from tasks.access import visible_tasks_qs
 from tasks.serializer import TaskSerializer
 
@@ -371,7 +371,7 @@ class ContactDetailView(APIView):
         visible_ids = (
             visible_deals_qs(self.request.profile)
             .filter(contacts=contact)
-            .exclude(stage_kind_q(*CLOSED_KINDS))
+            .filter(stage_kind_q(OPEN))
             .values("id")
         )
         groups = group_by_currency(

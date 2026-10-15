@@ -113,6 +113,16 @@ class Account(AssignableMixin, BaseModel):
 
 
 class AccountEmail(BaseModel):
+    is_historical = models.BooleanField(default=False, db_index=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    source_status = models.CharField(max_length=100, blank=True, default="")
+    source_message_id = models.TextField(blank=True, default="")
+    from_addresses = models.JSONField(default=list, blank=True)
+    to_addresses = models.JSONField(default=list, blank=True)
+    cc_addresses = models.JSONField(default=list, blank=True)
+    bcc_addresses = models.JSONField(default=list, blank=True)
+    body_text = models.TextField(blank=True, default="")
+
     from_account = models.ForeignKey(
         Account, related_name="sent_email", on_delete=models.SET_NULL, null=True
     )

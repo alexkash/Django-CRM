@@ -141,6 +141,7 @@ packages = [
     "tasks",
     "webforms",
     "webhooks",
+    "legacy",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -159,6 +160,7 @@ include = [
     "tasks/",
     "webforms/",
     "webhooks/",
+    "legacy/",
     "static/",
     "manage.py",
     ".env.example",

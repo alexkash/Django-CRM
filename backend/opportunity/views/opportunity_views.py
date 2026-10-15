@@ -58,7 +58,7 @@ from opportunity.serializer import (
 )
 from opportunity.stages import aging_q, stage_choices, stage_index
 from opportunity.tasks import send_email_to_assigned_user
-from opportunity.workflow import CLOSED_KINDS
+from opportunity.workflow import OPEN
 
 
 def stalled_filter(org):
@@ -132,7 +132,7 @@ def deal_list_queryset(profile, params):
     # fetch every deal and drop the closed ones client-side, which is
     # only correct until the first page boundary.
     if params.get("open") == "true":
-        queryset = queryset.exclude(stage_kind_q(*CLOSED_KINDS))
+        queryset = queryset.filter(stage_kind_q(OPEN))
 
     if params.get("rotten") == "true":
         # Rotten deals at DB level, using stage-specific thresholds.

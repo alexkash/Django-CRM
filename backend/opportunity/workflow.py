@@ -14,10 +14,16 @@ from common.utils import STAGES
 # What a stage means, as opposed to what it is called. Won and lost are the
 # two closed kinds; every report, goal and dashboard figure reads the kind, so
 # renaming "Closed Won" to "Signed" changes a label and nothing else.
+UNCLASSIFIED = "unknown"
 OPEN = "open"
 WON = "won"
 LOST = "lost"
-STAGE_KINDS = ((OPEN, "Open"), (WON, "Won"), (LOST, "Lost"))
+STAGE_KINDS = (
+    (OPEN, "Open"),
+    (WON, "Won"),
+    (LOST, "Lost"),
+    (UNCLASSIFIED, "Needs classification"),
+)
 CLOSED_KINDS = (WON, LOST)
 
 # Default probability for the seeded open stages (applied when a deal enters a
@@ -33,6 +39,8 @@ STAGE_PROBABILITIES = {
 
 def stage_probability(code, kind):
     """The probability a deal takes on entering the stage `code` of `kind`."""
+    if kind == UNCLASSIFIED:
+        return None
     if kind == WON:
         return 100
     if kind == LOST:
