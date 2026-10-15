@@ -95,6 +95,7 @@ export const OPPORTUNITY_SOURCES = [
 /** @type {{ value: string, label: string }[]} */
 export const CURRENCY_CODES = [
   { value: '', label: 'Select Currency' },
+  { value: 'UAH', label: 'UAH - Hryvnia' },
   { value: 'USD', label: 'USD - Dollar' },
   { value: 'EUR', label: 'EUR - Euro' },
   { value: 'GBP', label: 'GBP - Pound' },
@@ -113,6 +114,7 @@ export const CURRENCY_CODES = [
 
 /** @type {Record<string, string>} */
 export const CURRENCY_SYMBOLS = {
+  UAH: '₴',
   USD: '$',
   EUR: '€',
   GBP: '£',

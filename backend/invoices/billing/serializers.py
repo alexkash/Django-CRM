@@ -5,6 +5,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from .models import DocumentSequence, LegalEntity, LegalEntityBankAccount
+from .validators import BillingParticularsValidationMixin, validate_ua_iban
 
 ENTITY_FIELDS = (
     "id",
@@ -29,16 +30,13 @@ ENTITY_FIELDS = (
 )
 
 
-class LegalEntitySerializer(serializers.ModelSerializer):
+class LegalEntitySerializer(
+    BillingParticularsValidationMixin, serializers.ModelSerializer
+):
     class Meta:
         model = LegalEntity
         fields = ENTITY_FIELDS
         read_only_fields = ("id", "signature_sha256", "stamp_sha256")
-
-    def validate_registration_code(self, value):
-        if not re.fullmatch(r"\d{8}|\d{10}", value):
-            raise serializers.ValidationError("Вкажіть код із 8 або 10 цифр.")
-        return value
 
     def validate(self, attrs):
         instance = self.instance
@@ -74,7 +72,9 @@ class LegalEntitySerializer(serializers.ModelSerializer):
         return entity
 
 
-class BankAccountSerializer(serializers.ModelSerializer):
+class BankAccountSerializer(
+    BillingParticularsValidationMixin, serializers.ModelSerializer
+):
     class Meta:
         model = LegalEntityBankAccount
         fields = ("id", "iban", "bank_name", "mfo", "active")
@@ -82,12 +82,7 @@ class BankAccountSerializer(serializers.ModelSerializer):
         validators = []
 
     def validate_iban(self, value):
-        value = value.replace(" ", "").upper()
-        if not re.fullmatch(r"UA\d{27}", value):
-            raise serializers.ValidationError("IBAN має містити UA та 27 цифр.")
-        digits = value[4:] + "3010" + value[2:4]
-        if int(digits) % 97 != 1:
-            raise serializers.ValidationError("Некоректна контрольна сума IBAN.")
+        value = validate_ua_iban(value)
         entity = self.context.get("entity")
         qs = LegalEntityBankAccount.objects.filter(
             org=entity.org, entity=entity, iban=value
@@ -96,9 +91,4 @@ class BankAccountSerializer(serializers.ModelSerializer):
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
             raise serializers.ValidationError("Цей IBAN уже додано.")
-        return value
-
-    def validate_mfo(self, value):
-        if value and not re.fullmatch(r"\d{6}", value):
-            raise serializers.ValidationError("МФО має містити 6 цифр.")
         return value

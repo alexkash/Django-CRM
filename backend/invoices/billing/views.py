@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
@@ -88,6 +88,13 @@ class LegalEntityDetailView(BillingView):
 class BankAccountView(BillingView):
     serializer_class = BankAccountSerializer
 
+    def save_bank(self, serializer, **fields):
+        try:
+            with transaction.atomic():
+                return serializer.save(**fields)
+        except IntegrityError as exc:
+            raise ValidationError({"iban": "Цей IBAN уже додано."}) from exc
+
     def entity(self, request, pk):
         return get_object_or_404(
             LegalEntity.objects.filter(org=request.profile.org), pk=pk
@@ -115,8 +122,8 @@ class BankAccountView(BillingView):
             data=request.data, context={"entity": entity}
         )
         serializer.is_valid(raise_exception=True)
-        bank = serializer.save(
-            org=request.profile.org, entity=entity, created_by=request.user
+        bank = self.save_bank(
+            serializer, org=request.profile.org, entity=entity, created_by=request.user
         )
         return Response(BankAccountSerializer(bank).data, status=201)
 
@@ -136,7 +143,7 @@ class BankAccountView(BillingView):
             bank, data=request.data, partial=True, context={"entity": entity}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        self.save_bank(serializer)
         return Response(serializer.data)
 
     put = patch

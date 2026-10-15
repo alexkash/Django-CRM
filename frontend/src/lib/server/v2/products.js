@@ -42,6 +42,7 @@ import { viewerIsAdmin } from './organization.js';
  * that could 400 on an unknown code. Kept in this order (org default first).
  */
 export const CURRENCY_CHOICES = [
+  { code: 'UAH', label: 'UAH, Hryvnia' },
   { code: 'USD', label: 'USD, Dollar' },
   { code: 'EUR', label: 'EUR, Euro' },
   { code: 'GBP', label: 'GBP, Pound' },
