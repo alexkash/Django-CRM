@@ -74,6 +74,7 @@ function toProduct(p) {
     id: p.id,
     name: p.name ?? '',
     sku: p.sku ?? '',
+    unit: p.unit ?? '',
     description: p.description ?? '',
     price: Number(p.price) || 0,
     currency: p.currency ?? null,

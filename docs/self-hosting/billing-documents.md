@@ -1,7 +1,5 @@
 # Ukrainian invoices and service acts
 
-> The billing API and PDF lifecycle are available in this backend PR. The web settings and editors described below arrive in its dependent UI PR.
-
 A single CRM organization can issue documents from several of its own legal entities: ФОП or ТОВ, with or without VAT. These issuing companies share the CRM's customer and product catalog. Choose the company on each invoice; products are not automatically assigned to a company.
 
 ## Set up the parties

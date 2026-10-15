@@ -31,6 +31,7 @@
    * server-derived from the JWT and the profile. A form that collects them is
    * a form that can be edited to claim them.
    */
+  import UAInvoiceForm from '$lib/v2/components/billing/UAInvoiceForm.svelte';
   import { enhance } from '$app/forms';
   import { untrack } from 'svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
@@ -53,7 +54,7 @@
   } from '$lib/v2/line-items.js';
   import { Info } from '@lucide/svelte';
 
-  /** @type {{ data: { products: any[], accounts: any[], contacts: any[], org: { currency: string, timezone: string } }, form: any }} */
+  /** @type {{ data:any, form:any }} */
   let { data, form } = $props();
 
   /* The estimate builder's list. The org's default currency to start, read
@@ -167,260 +168,266 @@
   });
 </script>
 
-<PageHeader title="New invoice">
-  {#snippet sub()}
-    Nothing is sent until you send it. Saving leaves it as a draft
-  {/snippet}
-  {#snippet actions()}
-    <a class="v2-btn" href={resolve('/invoices')}>Cancel</a>
-    <button
-      type="submit"
-      form="invoice-form"
-      class="v2-btn v2-btn-primary"
-      disabled={!ready || saving}
-    >
-      {saving ? 'Saving…' : 'Save as draft'}
-    </button>
-  {/snippet}
-</PageHeader>
+{#if data.ua}
+  <UAInvoiceForm {data} {form} />
+{:else}
+  <PageHeader title="New invoice">
+    {#snippet sub()}
+      Nothing is sent until you send it. Saving leaves it as a draft
+    {/snippet}
+    {#snippet actions()}
+      <a class="v2-btn" href={resolve('/invoices')}>Cancel</a>
+      <button
+        type="submit"
+        form="invoice-form"
+        class="v2-btn v2-btn-primary"
+        disabled={!ready || saving}
+      >
+        {saving ? 'Saving…' : 'Save as draft'}
+      </button>
+    {/snippet}
+  </PageHeader>
 
-<SectionTabs set="invoices" />
+  <SectionTabs set="invoices" />
 
-{#if form?.error}
-  <div class="v2-pad" style="padding-top:12px">
-    <p class="new-error" role="alert">{form.error}</p>
-  </div>
-{/if}
+  {#if form?.error}
+    <div class="v2-pad" style="padding-top:12px">
+      <p class="new-error" role="alert">{form.error}</p>
+    </div>
+  {/if}
 
-<!-- The builder posts as one JSON field so the dynamic line list travels whole.
+  <!-- The builder posts as one JSON field so the dynamic line list travels whole.
      The submit button lives in the header and is wired to this form by id. -->
-<form
-  id="invoice-form"
-  method="POST"
-  action="?/create"
-  use:enhance={({ cancel }) => {
-    if (saving) return cancel();
-    saving = true;
-    return async ({ update }) => {
-      await update();
-      saving = false;
-    };
-  }}
->
-  <input type="hidden" name="payload" value={JSON.stringify(payload)} />
-</form>
+  <form
+    id="invoice-form"
+    method="POST"
+    action="?/create"
+    use:enhance={({ cancel }) => {
+      if (saving) return cancel();
+      saving = true;
+      return async ({ update }) => {
+        await update();
+        saving = false;
+      };
+    }}
+  >
+    <input type="hidden" name="payload" value={JSON.stringify(payload)} />
+  </form>
 
-<div class="v2-scroll">
-  <div class="v2-pad" style="padding-top:18px;padding-bottom:32px">
-    <div class="v2-split">
-      <!-- ── the form ─────────────────────────────────────────────────── -->
-      <div>
-        <div class="v2-card" style="padding:16px 18px">
-          <div class="v2-label" style="margin-bottom:12px">Who and when</div>
+  <div class="v2-scroll">
+    <div class="v2-pad" style="padding-top:18px;padding-bottom:32px">
+      <div class="v2-split">
+        <!-- ── the form ─────────────────────────────────────────────────── -->
+        <div>
+          <div class="v2-card" style="padding:16px 18px">
+            <div class="v2-label" style="margin-bottom:12px">Who and when</div>
 
-          <div class="grid2">
-            <label class="f">
-              <span>Account</span>
-              <select bind:value={accountId} onchange={() => (contactId = '')}>
-                <option value="">Choose an account</option>
-                {#each data.accounts as a (a.id)}
-                  <option value={a.id}>{a.name}</option>
-                {/each}
-              </select>
-            </label>
-
-            <label class="f">
-              <span>Contact</span>
-              <select bind:value={contactId} disabled={!accountId}>
-                <option value="">{accountId ? 'Choose a contact' : 'Pick an account first'}</option>
-                {#each contactOptions as c (c.id)}
-                  <option value={c.id}
-                    >{c.name}{c.account_name ? ` · ${c.account_name}` : ''}</option
-                  >
-                {/each}
-              </select>
-            </label>
-
-            <label class="f">
-              <span>Title</span>
-              <input bind:value={title} placeholder="What this invoice covers" required />
-            </label>
-
-            <label class="f">
-              <span>Issue date</span>
-              <input type="date" bind:value={issueDate} />
-            </label>
-
-            <label class="f">
-              <span>Currency</span>
-              <select bind:value={currency}>
-                {#each CURRENCIES as c (c.value)}
-                  <option value={c.value}>{c.label}</option>
-                {/each}
-              </select>
-            </label>
-
-            <label class="f">
-              <span>Payment terms</span>
-              <select bind:value={paymentTerms}>
-                {#each Object.entries(PAYMENT_TERMS_LABEL) as [value, label] (value)}
-                  <option {value}>{label}</option>
-                {/each}
-              </select>
-            </label>
-
-            {#if paymentTerms === 'CUSTOM'}
+            <div class="grid2">
               <label class="f">
-                <span>Due date</span>
-                <input type="date" bind:value={customDueDate} />
+                <span>Account</span>
+                <select bind:value={accountId} onchange={() => (contactId = '')}>
+                  <option value="">Choose an account</option>
+                  {#each data.accounts as a (a.id)}
+                    <option value={a.id}>{a.name}</option>
+                  {/each}
+                </select>
               </label>
-            {/if}
-          </div>
 
-          {#if customFallsBack}
-            <!-- Not a style nit. CUSTOM is missing from the server's term_days
+              <label class="f">
+                <span>Contact</span>
+                <select bind:value={contactId} disabled={!accountId}>
+                  <option value=""
+                    >{accountId ? 'Choose a contact' : 'Pick an account first'}</option
+                  >
+                  {#each contactOptions as c (c.id)}
+                    <option value={c.id}
+                      >{c.name}{c.account_name ? ` · ${c.account_name}` : ''}</option
+                    >
+                  {/each}
+                </select>
+              </label>
+
+              <label class="f">
+                <span>Title</span>
+                <input bind:value={title} placeholder="What this invoice covers" required />
+              </label>
+
+              <label class="f">
+                <span>Issue date</span>
+                <input type="date" bind:value={issueDate} />
+              </label>
+
+              <label class="f">
+                <span>Currency</span>
+                <select bind:value={currency}>
+                  {#each CURRENCIES as c (c.value)}
+                    <option value={c.value}>{c.label}</option>
+                  {/each}
+                </select>
+              </label>
+
+              <label class="f">
+                <span>Payment terms</span>
+                <select bind:value={paymentTerms}>
+                  {#each Object.entries(PAYMENT_TERMS_LABEL) as [value, label] (value)}
+                    <option {value}>{label}</option>
+                  {/each}
+                </select>
+              </label>
+
+              {#if paymentTerms === 'CUSTOM'}
+                <label class="f">
+                  <span>Due date</span>
+                  <input type="date" bind:value={customDueDate} />
+                </label>
+              {/if}
+            </div>
+
+            {#if customFallsBack}
+              <!-- Not a style nit. CUSTOM is missing from the server's term_days
                  map and `.get(terms, 30)` supplies 30, so leaving this empty
                  produces a date the customer will hold you to. -->
-            <p class="warn">
-              <Info size={13} />
-              <span>
-                Custom terms with no date set becomes <b>Net 30</b> on save, the server falls back to
-                30 days rather than leaving the date empty.
-              </span>
-            </p>
-          {/if}
-        </div>
-
-        <LineItemsEditor bind:items products={data.products} {currency} />
-
-        <div class="v2-card" style="padding:16px 18px;margin-top:14px">
-          <div class="v2-label" style="margin-bottom:12px">Adjustments</div>
-          <div class="grid2">
-            <label class="f">
-              <span>Discount</span>
-              <select bind:value={discountType}>
-                <option value="">None</option>
-                <option value="PERCENTAGE">Percentage</option>
-                <option value="FIXED">Fixed amount</option>
-              </select>
-            </label>
-            {#if discountType}
-              <label class="f">
-                <span>{discountType === 'PERCENTAGE' ? 'Percent off' : 'Amount off'}</span>
-                <input
-                  type="number"
-                  min="0"
-                  max={discountType === 'PERCENTAGE' ? 100 : undefined}
-                  step="0.01"
-                  bind:value={discountValue}
-                  aria-invalid={Boolean(discountError)}
-                />
-                {#if discountError}
-                  <small class="field-err" role="alert">{discountError}</small>
-                {/if}
-              </label>
-            {/if}
-            <label class="f">
-              <span>Tax rate %</span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                bind:value={taxRate}
-                aria-invalid={Boolean(taxError)}
-              />
-              {#if taxError}
-                <small class="field-err" role="alert">{taxError}</small>
-              {/if}
-            </label>
-            <label class="f">
-              <span>Shipping</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                bind:value={shipping}
-                aria-invalid={Boolean(shipError)}
-              />
-              {#if shipError}
-                <small class="field-err" role="alert">{shipError}</small>
-              {/if}
-            </label>
-          </div>
-          <p class="hint">
-            Tax applies to the subtotal after the discount. Shipping is added afterwards and is not
-            taxed.
-          </p>
-        </div>
-
-        <div class="v2-card" style="padding:16px 18px;margin-top:14px">
-          <div class="v2-label" style="margin-bottom:8px">Notes to the customer</div>
-          <textarea rows="3" bind:value={notes} placeholder="Appears on the invoice"></textarea>
-        </div>
-      </div>
-
-      <!-- ── what the customer will get ───────────────────────────────── -->
-      <div>
-        <div class="v2-card preview">
-          <div class="v2-card-head">
-            <span class="v2-label">What the customer will see</span>
-          </div>
-          <div style="padding:14px 16px 16px">
-            {#if usableLines.length}
-              <PortalLineItems
-                items={usableLines}
-                {currency}
-                subtotal={totals.subtotal}
-                discountAmount={totals.discountAmount}
-                {discountType}
-                {discountValue}
-                {taxRate}
-                taxAmount={totals.taxAmount}
-                shippingAmount={num(shipping)}
-                total={totals.total}
-              />
-            {:else}
-              <p class="empty">
-                Add a line with a description and an amount, and the customer's copy appears here.
+              <p class="warn">
+                <Info size={13} />
+                <span>
+                  Custom terms with no date set becomes <b>Net 30</b> on save, the server falls back to
+                  30 days rather than leaving the date empty.
+                </span>
               </p>
             {/if}
           </div>
-        </div>
 
-        <div class="v2-card" style="padding:15px 16px;margin-top:14px">
-          <div class="v2-label" style="margin-bottom:9px">When it falls due</div>
-          {#if derivedDueDate}
-            <div class="due">{longDate(derivedDueDate)}</div>
-            <p class="hint" style="margin-top:5px">
-              {#if paymentTerms === 'CUSTOM'}
-                Set by hand.
-              {:else}
-                {PAYMENT_TERMS_LABEL[paymentTerms]} from the issue date. The server recalculates this
-                on save from the same two fields.
+          <LineItemsEditor bind:items products={data.products} {currency} />
+
+          <div class="v2-card" style="padding:16px 18px;margin-top:14px">
+            <div class="v2-label" style="margin-bottom:12px">Adjustments</div>
+            <div class="grid2">
+              <label class="f">
+                <span>Discount</span>
+                <select bind:value={discountType}>
+                  <option value="">None</option>
+                  <option value="PERCENTAGE">Percentage</option>
+                  <option value="FIXED">Fixed amount</option>
+                </select>
+              </label>
+              {#if discountType}
+                <label class="f">
+                  <span>{discountType === 'PERCENTAGE' ? 'Percent off' : 'Amount off'}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={discountType === 'PERCENTAGE' ? 100 : undefined}
+                    step="0.01"
+                    bind:value={discountValue}
+                    aria-invalid={Boolean(discountError)}
+                  />
+                  {#if discountError}
+                    <small class="field-err" role="alert">{discountError}</small>
+                  {/if}
+                </label>
               {/if}
+              <label class="f">
+                <span>Tax rate %</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  bind:value={taxRate}
+                  aria-invalid={Boolean(taxError)}
+                />
+                {#if taxError}
+                  <small class="field-err" role="alert">{taxError}</small>
+                {/if}
+              </label>
+              <label class="f">
+                <span>Shipping</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  bind:value={shipping}
+                  aria-invalid={Boolean(shipError)}
+                />
+                {#if shipError}
+                  <small class="field-err" role="alert">{shipError}</small>
+                {/if}
+              </label>
+            </div>
+            <p class="hint">
+              Tax applies to the subtotal after the discount. Shipping is added afterwards and is
+              not taxed.
             </p>
-          {:else}
-            <p class="hint" style="margin:0">Set an issue date to see the due date.</p>
-          {/if}
+          </div>
+
+          <div class="v2-card" style="padding:16px 18px;margin-top:14px">
+            <div class="v2-label" style="margin-bottom:8px">Notes to the customer</div>
+            <textarea rows="3" bind:value={notes} placeholder="Appears on the invoice"></textarea>
+          </div>
         </div>
 
-        <div class="v2-card" style="padding:15px 16px;margin-top:14px">
-          <div class="v2-label" style="margin-bottom:9px">Assigned on save</div>
-          <dl class="derived">
-            <dt>Invoice number</dt>
-            <dd>INV-<span class="v2-num">{issueDate.replace(/-/g, '')}</span>-nnnn</dd>
-            <dt>Customer link</dt>
-            <dd>Generated, and only sent when you send the invoice</dd>
-          </dl>
-          <p class="hint" style="margin-top:9px">
-            Both come from the server so that two people saving at once cannot collide.
-          </p>
+        <!-- ── what the customer will get ───────────────────────────────── -->
+        <div>
+          <div class="v2-card preview">
+            <div class="v2-card-head">
+              <span class="v2-label">What the customer will see</span>
+            </div>
+            <div style="padding:14px 16px 16px">
+              {#if usableLines.length}
+                <PortalLineItems
+                  items={usableLines}
+                  {currency}
+                  subtotal={totals.subtotal}
+                  discountAmount={totals.discountAmount}
+                  {discountType}
+                  {discountValue}
+                  {taxRate}
+                  taxAmount={totals.taxAmount}
+                  shippingAmount={num(shipping)}
+                  total={totals.total}
+                />
+              {:else}
+                <p class="empty">
+                  Add a line with a description and an amount, and the customer's copy appears here.
+                </p>
+              {/if}
+            </div>
+          </div>
+
+          <div class="v2-card" style="padding:15px 16px;margin-top:14px">
+            <div class="v2-label" style="margin-bottom:9px">When it falls due</div>
+            {#if derivedDueDate}
+              <div class="due">{longDate(derivedDueDate)}</div>
+              <p class="hint" style="margin-top:5px">
+                {#if paymentTerms === 'CUSTOM'}
+                  Set by hand.
+                {:else}
+                  {PAYMENT_TERMS_LABEL[paymentTerms]} from the issue date. The server recalculates this
+                  on save from the same two fields.
+                {/if}
+              </p>
+            {:else}
+              <p class="hint" style="margin:0">Set an issue date to see the due date.</p>
+            {/if}
+          </div>
+
+          <div class="v2-card" style="padding:15px 16px;margin-top:14px">
+            <div class="v2-label" style="margin-bottom:9px">Assigned on save</div>
+            <dl class="derived">
+              <dt>Invoice number</dt>
+              <dd>INV-<span class="v2-num">{issueDate.replace(/-/g, '')}</span>-nnnn</dd>
+              <dt>Customer link</dt>
+              <dd>Generated, and only sent when you send the invoice</dd>
+            </dl>
+            <p class="hint" style="margin-top:9px">
+              Both come from the server so that two people saving at once cannot collide.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+{/if}
 
 <style>
   .grid2 {

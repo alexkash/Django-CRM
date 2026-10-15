@@ -90,6 +90,9 @@
 </PageHeader>
 
 <div class="v2-scroll">
+  <div class="v2-pad">
+    <a class="v2-btn" href={resolve('/invoices/acts') + `?account=${account.id}`}>Акти клієнта</a>
+  </div>
   <div class="v2-pad" style="padding-bottom:32px">
     <div class="v2-stats" style="margin-bottom:16px">
       <StatCard
