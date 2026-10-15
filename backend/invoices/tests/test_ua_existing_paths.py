@@ -228,3 +228,20 @@ def test_header_tax_change_overflow_is_validation_error(admin_client, org_a):
     current = Invoice.objects.get(pk=inv["id"])
     assert str(current.tax_rate) == "20.00"
     assert str(current.total_amount) == "9000000000.00"
+
+
+def test_copy_of_maximum_length_title_stays_a_valid_draft(admin_client, org_a):
+    from invoices.models import Invoice
+
+    title = "П" * Invoice._meta.get_field("invoice_title").max_length
+    inv = create_invoice(admin_client, org_a, invoice_title=title)
+    response = admin_client.post(
+        f"/api/invoices/{inv['id']}/duplicate/", {}, format="json"
+    )
+    assert response.status_code == 201, response.content
+    copy = Invoice.objects.get(pk=response.data["invoice"]["id"])
+    assert copy.invoice_title == ("Копія " + title)[:100]
+    assert (
+        len(copy.invoice_title) <= Invoice._meta.get_field("invoice_title").max_length
+    )
+    assert copy.status == "Draft" and copy.issued_at is None

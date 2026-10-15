@@ -463,7 +463,9 @@ def duplicate_ua_invoice(*, actor, original):
     invoice = Invoice.objects.create(
         org=actor.profile.org,
         created_by=actor.user,
-        invoice_title="Копія " + original.invoice_title,
+        invoice_title=("Копія " + original.invoice_title)[
+            : Invoice._meta.get_field("invoice_title").max_length
+        ],
         issuer=issuer,
         bank_account=original.bank_account,
         vat_status=issuer.vat_status,
