@@ -103,3 +103,9 @@ describe('clearing a separate invoice payer', () => {
     expect(body.draft_parties.payer).toEqual({});
   });
 });
+
+it('sends an explicit null to recalculate a cleared due date on draft update', async () => {
+  const { uaInvoicePayload } = await import('./billing-forms.js');
+  const body = uaInvoicePayload({ issue_date: '2027-02-01', due_date: '' });
+  expect(body).toHaveProperty('due_date', null);
+});

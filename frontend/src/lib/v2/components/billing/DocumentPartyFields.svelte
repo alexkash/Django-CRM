@@ -1,5 +1,5 @@
 <script>
-  /** @type {{values:any,entities:any[],banks:any[],accounts:any[],contacts:any[],onissuerchange?:()=>void}} */
+  /** @type {{values:any,entities:any[],banks:any[],accounts:any[],contacts:any[],onissuerchange?:(id:string)=>void}} */
   let {
     values = $bindable({}),
     entities = [],
@@ -18,7 +18,7 @@
     ><span>Наша компанія</span><select
       bind:value={values.issuer_id}
       required
-      onchange={onissuerchange}
+      onchange={(event) => onissuerchange(event.currentTarget.value)}
       ><option value="">Оберіть компанію</option>{#each entities as entity}<option
           value={entity.id}
           disabled={!entity.active}>{entity.legal_name}{entity.active ? '' : ' (архів)'}</option

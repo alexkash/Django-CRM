@@ -28,8 +28,9 @@
     ><span>ПДВ</span><select
       name="vat_status"
       bind:value={values.vat_status}
-      onchange={() => {
-        if (values.vat_status === 'NON_PAYER') values.default_vat_rate = '0';
+      onchange={(event) => {
+        values.vat_status = event.currentTarget.value;
+        if (event.currentTarget.value === 'NON_PAYER') values.default_vat_rate = '0';
       }}
       ><option value="NON_PAYER">Без ПДВ</option><option value="PAYER">Платник ПДВ</option></select
     ></label

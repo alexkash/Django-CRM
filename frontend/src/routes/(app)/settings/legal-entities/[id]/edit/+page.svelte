@@ -5,7 +5,7 @@
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import LegalEntityFields from '$lib/v2/components/billing/LegalEntityFields.svelte';
   /** @type {{data:any,form?:any}} */ let { data, form } = $props();
-  let values = $state(untrack(() => ({ ...data.entity })));
+  let values = $state(untrack(() => ({ ...data.entity, ...(form?.values ?? {}) })));
   const scans = [
     ['signature', 'Підпис'],
     ['stamp', 'Печатка']

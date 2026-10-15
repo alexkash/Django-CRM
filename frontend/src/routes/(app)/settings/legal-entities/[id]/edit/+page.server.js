@@ -18,9 +18,10 @@ export async function load(event) {
     throw err;
   }
 }
-const failure = (err) =>
+const failure = (err, values = undefined) =>
   fail([400, 403, 404, 409].includes(err.status) ? err.status : 400, {
-    error: readableError(err, 'Не вдалося зберегти зміни.')
+    error: readableError(err, 'Не вдалося зберегти зміни.'),
+    values
   });
 export const actions = {
   save: async (event) => {
@@ -35,7 +36,7 @@ export const actions = {
       await saveLegalEntity(event, event.params.id, values);
       return { saved: true };
     } catch (err) {
-      return failure(err);
+      return failure(err, values);
     }
   },
   bank: async (event) => {

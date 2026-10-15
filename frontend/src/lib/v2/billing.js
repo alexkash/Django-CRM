@@ -95,7 +95,7 @@ export function uaInvoicePayload(values) {
   }
   for (const key of ['contract_date', 'service_period_start', 'service_period_end'])
     if (!result[key]) result[key] = null;
-  if (!result.due_date) delete result.due_date;
+  if (!result.due_date) result.due_date = null;
   result.line_items = (values.line_items ?? []).map((line) => ({
     name: line.name ?? '',
     description: line.description ?? '',

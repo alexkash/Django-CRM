@@ -65,10 +65,12 @@
   $effect(() => {
     if (entity?.vat_status === 'NON_PAYER') values.tax_rate = '0';
   });
-  function selectIssuer() {
+  function selectIssuer(id) {
+    const selected = data.entities.find((row) => row.id === id);
+    values.issuer_id = id;
     values.bank_account_id = '';
-    values.tax_rate = String(entity?.default_vat_rate ?? '0');
-    values.place_of_issue = entity?.city ?? '';
+    values.tax_rate = String(selected?.default_vat_rate ?? '0');
+    values.place_of_issue = selected?.city ?? '';
   }
   function addProduct() {
     const product = data.products.find((row) => row.id === selectedProduct);
