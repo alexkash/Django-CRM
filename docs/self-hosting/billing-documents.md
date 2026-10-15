@@ -8,6 +8,8 @@ Open **Settings → Наші компанії**. An organization administrator a
 
 The optional signature and stamp are raster images for printing. Upload PNG or JPEG, up to 2 MiB and 16 megapixels; transparent PNG is useful for a clean background. The application decodes and normalizes the image, rejects animation, and applies the size limit to the normalized PNG too. Original scan access is administrator-only. These images do not implement electronic signing.
 
+The production frontend image sets `BODY_SIZE_LIMIT=3M` so a 2 MiB scan and multipart framing can reach the API. When running the adapter-node build directly, set this environment variable to at least `3M`; its upstream default of 512 KiB is too small. Operators can raise the transport limit for other attachments; the billing API still enforces the 2 MiB scan limit.
+
 On the customer's account, enter **Юридичні реквізити для документів**: full name, code, address, bank details and representative. Existing customer records remain valid without these fields; the required document particulars are checked when issuing. You can override customer or payer particulars in a draft for that document.
 
 ## Create and issue an invoice

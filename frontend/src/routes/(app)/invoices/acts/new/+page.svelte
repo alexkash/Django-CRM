@@ -18,7 +18,8 @@
           <label
             ><span>Рахунок</span><select name="invoice" required
               >{#each data.invoices as invoice}<option value={invoice.id}
-                  >{invoice.invoice_number} · {invoice.account.name}</option
+                  >{invoice.issuer_name || invoice.issuer?.legal_name} · {invoice.invoice_number} · {invoice
+                    .account.name}</option
                 >{/each}</select
             ></label
           ><button

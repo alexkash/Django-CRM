@@ -11,7 +11,7 @@ export async function load(event) {
   const rows = await listInvoices(event, new URLSearchParams({ limit: '1000' }));
   return {
     invoice: null,
-    invoices: rows.results.filter(
+    invoices: rows.invoices.filter(
       (row) => row.issuer && row.issued_at && row.status !== 'Cancelled'
     )
   };

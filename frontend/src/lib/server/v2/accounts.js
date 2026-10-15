@@ -447,7 +447,7 @@ function toBody(values) {
   for (const field of EDITABLE_FIELDS) {
     if (!(field in values)) continue;
     const value = values[field];
-    body[field] = value === '' ? null : value;
+    body[field] = value === '' && !CUSTOMER_BILLING_FIELDS.includes(field) ? null : value;
   }
   if ('number_of_employees' in body && body.number_of_employees !== null) {
     body.number_of_employees = Number(body.number_of_employees);
