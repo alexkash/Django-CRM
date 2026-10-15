@@ -67,7 +67,7 @@
   tags={data.tags}
   meId={data.meId}
   saved={data.savedViews}
-  meta="Least recently touched first"
+  meta="This page: least recently touched first"
 />
 
 <LeadImportDrawer

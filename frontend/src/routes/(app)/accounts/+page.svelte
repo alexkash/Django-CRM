@@ -70,7 +70,7 @@
   tags={data.tags}
   meId={data.meId}
   saved={data.savedViews}
-  meta="Sorted by revenue won"
+  meta="This page sorted by currency, then revenue won"
 />
 
 <div class="v2-scroll">

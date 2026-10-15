@@ -242,7 +242,9 @@
   saved={data.savedViews}
   onlyFields={data.onlyFields}
   onlyPresets={data.onlyPresets}
-  meta={view === 'board' ? 'Open stages only. Drag a card to change its stage' : 'Sorted by value'}
+  meta={view === 'board'
+    ? 'Open stages only. Drag a card to change its stage'
+    : 'This page sorted by value'}
 />
 
 {#if moveError}
