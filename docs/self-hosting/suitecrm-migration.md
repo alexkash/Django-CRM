@@ -2,6 +2,8 @@
 
 The migration preserves an immutable T0 snapshot. SuiteCRM stays online; this is not an automatic cutover or continuous synchronization. Later SuiteCRM changes require a separately reviewed delta migration.
 
+The importer is specific to the reviewed `suitecrm-coloris` source and its existing destination organization. Its global source identity deliberately prevents rebinding that snapshot to another organization. Importing another source or destination requires a separately reviewed identity namespace and mapping; changing the namespace of this deployment would invalidate its existing deterministic IDs and reconciliation records.
+
 ## Evidence and safety
 
 Source: `164.92.244.103`, SuiteCRM 7.12.6. Destination: the existing `/opt/crm` installation on `51.222.37.4`, organization `7bf5683d-d4d0-461e-ba80-8f6c16cf3931`. The approved snapshot is `/opt/crm/migration/20261015T105712Z-1`; SQL SHA256 is `5dadacc31e6c50923fb7caa9feb9fd879cef28038077b8a9ed7ba9e6831375ca`.

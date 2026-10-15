@@ -400,7 +400,7 @@
                   ? 'color:var(--v2-rust);font-weight:600'
                   : 'color:var(--v2-slate)'}
               >
-                {d.days_in_current_stage}d
+                {d.days_in_current_stage == null ? '—' : `${d.days_in_current_stage}d`}
               </td>
               <td data-m="hide"><Avatar name={d.assigned_to} size={22} /></td>
             </tr>

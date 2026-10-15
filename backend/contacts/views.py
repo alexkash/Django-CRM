@@ -68,7 +68,7 @@ def contact_list_queryset(profile, params):
     # `-id` is a random UUID, so "the list" was in no order at all -- a page
     # that says "most recent first" was shuffling people. The model's own
     # Meta.ordering is `-created_at`; this now agrees.
-    queryset = access.visible_contacts_qs(profile).order_by("-created_at")
+    queryset = access.visible_contacts_qs(profile).order_by("-created_at", "id")
     if params.get("name"):
         name = params.get("name")
         queryset = queryset.filter(

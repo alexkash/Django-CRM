@@ -2,7 +2,7 @@
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
-  import { invalidateAll } from '$app/navigation';
+  import { afterNavigate, invalidateAll } from '$app/navigation';
   import { SvelteSet } from 'svelte/reactivity';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import SectionTabs from '$lib/v2/components/SectionTabs.svelte';
@@ -26,6 +26,7 @@
   // is reactive on mutation, so add/delete/clear below re-render without
   // reassigning the whole set.
   let selected = new SvelteSet();
+  afterNavigate(() => selected.clear());
   let banner = $state('');
   let importOpen = $state(false);
 

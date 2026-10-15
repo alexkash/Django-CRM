@@ -4,15 +4,34 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0051_alter_activity_action'),
+        ("common", "0051_alter_activity_action"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='org',
-            name='default_currency',
-            field=models.CharField(choices=[('UAH', 'UAH, Hryvnia'), ('USD', 'USD, Dollar'), ('EUR', 'EUR, Euro'), ('GBP', 'GBP, Pound'), ('INR', 'INR, Rupee'), ('CAD', 'CAD, Dollar'), ('AUD', 'AUD, Dollar'), ('JPY', 'JPY, Yen'), ('CNY', 'CNY, Yuan'), ('CHF', 'CHF, Franc'), ('SGD', 'SGD, Dollar'), ('AED', 'AED, Dirham'), ('BRL', 'BRL, Real'), ('MXN', 'MXN, Peso'), ('ZAR', 'ZAR, Rand')], default='USD', max_length=3),
+            model_name="org",
+            name="default_currency",
+            field=models.CharField(
+                choices=[
+                    ("UAH", "UAH, Hryvnia"),
+                    ("USD", "USD, Dollar"),
+                    ("EUR", "EUR, Euro"),
+                    ("GBP", "GBP, Pound"),
+                    ("INR", "INR, Rupee"),
+                    ("CAD", "CAD, Dollar"),
+                    ("AUD", "AUD, Dollar"),
+                    ("JPY", "JPY, Yen"),
+                    ("CNY", "CNY, Yuan"),
+                    ("CHF", "CHF, Franc"),
+                    ("SGD", "SGD, Dollar"),
+                    ("AED", "AED, Dirham"),
+                    ("BRL", "BRL, Real"),
+                    ("MXN", "MXN, Peso"),
+                    ("ZAR", "ZAR, Rand"),
+                ],
+                default="USD",
+                max_length=3,
+            ),
         ),
     ]

@@ -4,15 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('opportunity', '0022_add_zar_currency'),
+        ("opportunity", "0022_add_zar_currency"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='dealstage',
-            name='kind',
-            field=models.CharField(choices=[('open', 'Open'), ('won', 'Won'), ('lost', 'Lost'), ('unknown', 'Needs classification')], default='open', max_length=10),
+            model_name="dealstage",
+            name="kind",
+            field=models.CharField(
+                choices=[
+                    ("open", "Open"),
+                    ("won", "Won"),
+                    ("lost", "Lost"),
+                    ("unknown", "Needs classification"),
+                ],
+                default="open",
+                max_length=10,
+            ),
         ),
     ]

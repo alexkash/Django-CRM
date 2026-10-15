@@ -4,15 +4,34 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('cases', '0033_add_zar_currency'),
+        ("cases", "0033_add_zar_currency"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='timeentry',
-            name='currency',
-            field=models.CharField(choices=[('UAH', 'UAH, Hryvnia'), ('USD', 'USD, Dollar'), ('EUR', 'EUR, Euro'), ('GBP', 'GBP, Pound'), ('INR', 'INR, Rupee'), ('CAD', 'CAD, Dollar'), ('AUD', 'AUD, Dollar'), ('JPY', 'JPY, Yen'), ('CNY', 'CNY, Yuan'), ('CHF', 'CHF, Franc'), ('SGD', 'SGD, Dollar'), ('AED', 'AED, Dirham'), ('BRL', 'BRL, Real'), ('MXN', 'MXN, Peso'), ('ZAR', 'ZAR, Rand')], default='USD', max_length=3),
+            model_name="timeentry",
+            name="currency",
+            field=models.CharField(
+                choices=[
+                    ("UAH", "UAH, Hryvnia"),
+                    ("USD", "USD, Dollar"),
+                    ("EUR", "EUR, Euro"),
+                    ("GBP", "GBP, Pound"),
+                    ("INR", "INR, Rupee"),
+                    ("CAD", "CAD, Dollar"),
+                    ("AUD", "AUD, Dollar"),
+                    ("JPY", "JPY, Yen"),
+                    ("CNY", "CNY, Yuan"),
+                    ("CHF", "CHF, Franc"),
+                    ("SGD", "SGD, Dollar"),
+                    ("AED", "AED, Dirham"),
+                    ("BRL", "BRL, Real"),
+                    ("MXN", "MXN, Peso"),
+                    ("ZAR", "ZAR, Rand"),
+                ],
+                default="USD",
+                max_length=3,
+            ),
         ),
     ]

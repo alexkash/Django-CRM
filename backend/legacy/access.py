@@ -57,10 +57,9 @@ def read_rules(profile):
     }
 
 
-def visible_records(profile):
+def _readable_records_cte(profile):
+    """Shared policy CTE, kept at one SQL level for every consumer."""
     qs = LegacyRecord.objects.filter(org=profile.org)
-    if is_org_admin(profile):
-        return qs
     rules = read_rules(profile)
     readable = Q(pk__in=[])
     for label, visible in rules.items():
@@ -126,7 +125,9 @@ def visible_records(profile):
     ), grounded(id) AS (
         SELECT id FROM anchors
         UNION SELECT e.child FROM edges e JOIN grounded g ON e.parent=g.id
-    ) SELECT id FROM grounded WHERE id NOT IN (SELECT id FROM bad)
+    ), readable(id) AS (
+        SELECT id FROM grounded WHERE id NOT IN (SELECT id FROM bad)
+    )
     """
     org_param = LegacyRecord._meta.get_field("org").get_db_prep_value(
         profile.org_id, connection
@@ -138,7 +139,15 @@ def visible_records(profile):
         *ACTOR_ROLES,
         org_param,
     )
-    return qs.filter(id__in=RawSQL(sql, params))
+    return sql, params
+
+
+def visible_records(profile):
+    qs = LegacyRecord.objects.filter(org=profile.org)
+    if is_org_admin(profile):
+        return qs
+    sql, params = _readable_records_cte(profile)
+    return qs.filter(id__in=RawSQL(sql + " SELECT id FROM readable", params))
 
 
 def readable_record(profile, pk):
@@ -149,7 +158,15 @@ def readable_projection_filter(queryset, profile):
     """Apply history's stricter source-parent rule to imported native feed rows."""
     if is_org_admin(profile):
         return queryset
-    blocked = LegacyProjection.objects.filter(
-        org=profile.org, target_model=queryset.model._meta.label
-    ).exclude(record_id__in=visible_records(profile).values("pk"))
-    return queryset.exclude(pk__in=blocked.values("target_id"))
+    sql, params = _readable_records_cte(profile)
+    org_param = LegacyProjection._meta.get_field("org").get_db_prep_value(
+        profile.org_id, connection
+    )
+    blocked = RawSQL(
+        sql
+        + """ SELECT target_id FROM legacy_projection
+        WHERE org_id=%s AND target_model=%s
+        AND record_id NOT IN (SELECT id FROM readable)""",
+        (*params, org_param, queryset.model._meta.label),
+    )
+    return queryset.exclude(pk__in=blocked)

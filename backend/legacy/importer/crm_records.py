@@ -187,8 +187,10 @@ def project_opportunities(ctx, rows=None):
         d = audit["values"]
         if d.get("field_name") == "sales_stage":
             at = source_time(d.get("date_created"))
-            if at and at > changes.get(str(d.get("parent_id")), at.replace(year=1)):
-                changes[str(d.get("parent_id"))] = at
+            parent = str(d.get("parent_id"))
+            previous = changes.get(parent)
+            if at and (previous is None or at > previous):
+                changes[parent] = at
     for row in _ordered(ctx, "opportunities", rows):
         d = row["values"]
         key = row["source_id"]

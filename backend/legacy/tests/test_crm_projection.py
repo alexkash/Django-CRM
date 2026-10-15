@@ -15,6 +15,36 @@ def projectors():
     return crm_records
 
 
+def test_leap_day_stage_audit_preserves_latest_timestamp(org_a, tmp_path):
+    ctx = make_context(
+        org_a,
+        tmp_path,
+        {
+            "opportunities": [
+                {"id": "deal", "name": "Leap day", "sales_stage": "Prospecting"}
+            ],
+            "opportunities_audit": [
+                {
+                    "id": "late",
+                    "parent_id": "deal",
+                    "field_name": "sales_stage",
+                    "date_created": "2024-02-29 12:00:00",
+                },
+                {
+                    "id": "early",
+                    "parent_id": "deal",
+                    "field_name": "sales_stage",
+                    "date_created": "2024-02-29 10:00:00",
+                },
+            ],
+        },
+    )
+    projectors().project_opportunities(ctx)
+    assert Opportunity.objects.get(org=org_a).stage_changed_at == datetime(
+        2024, 2, 29, 12, tzinfo=timezone.utc
+    )
+
+
 def test_duplicate_email_keeps_both_contacts(org_a, tmp_path):
     m = projectors()
     tables = {

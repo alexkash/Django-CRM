@@ -4,15 +4,36 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0010_accountemail_bcc_addresses_accountemail_body_text_and_more'),
+        ("accounts", "0010_accountemail_bcc_addresses_accountemail_body_text_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='account',
-            name='currency',
-            field=models.CharField(blank=True, choices=[('UAH', 'UAH, Hryvnia'), ('USD', 'USD, Dollar'), ('EUR', 'EUR, Euro'), ('GBP', 'GBP, Pound'), ('INR', 'INR, Rupee'), ('CAD', 'CAD, Dollar'), ('AUD', 'AUD, Dollar'), ('JPY', 'JPY, Yen'), ('CNY', 'CNY, Yuan'), ('CHF', 'CHF, Franc'), ('SGD', 'SGD, Dollar'), ('AED', 'AED, Dirham'), ('BRL', 'BRL, Real'), ('MXN', 'MXN, Peso'), ('ZAR', 'ZAR, Rand')], max_length=3, null=True, verbose_name='Currency'),
+            model_name="account",
+            name="currency",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("UAH", "UAH, Hryvnia"),
+                    ("USD", "USD, Dollar"),
+                    ("EUR", "EUR, Euro"),
+                    ("GBP", "GBP, Pound"),
+                    ("INR", "INR, Rupee"),
+                    ("CAD", "CAD, Dollar"),
+                    ("AUD", "AUD, Dollar"),
+                    ("JPY", "JPY, Yen"),
+                    ("CNY", "CNY, Yuan"),
+                    ("CHF", "CHF, Franc"),
+                    ("SGD", "SGD, Dollar"),
+                    ("AED", "AED, Dirham"),
+                    ("BRL", "BRL, Real"),
+                    ("MXN", "MXN, Peso"),
+                    ("ZAR", "ZAR, Rand"),
+                ],
+                max_length=3,
+                null=True,
+                verbose_name="Currency",
+            ),
         ),
     ]
