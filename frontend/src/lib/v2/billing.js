@@ -218,3 +218,8 @@ export function addCatalogLine(lines, product) {
     (!first.unit || first.unit === 'послуга');
   return untouched ? [line] : [...lines, line];
 }
+
+/** A zero-priced service can still have quantity left to close. @param {any} invoice */
+export function hasRemainingServices(invoice) {
+  return Boolean(invoice?.closure?.lines?.some((line) => Number(line.remaining_quantity) > 0));
+}

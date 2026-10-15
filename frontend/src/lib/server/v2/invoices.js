@@ -90,6 +90,7 @@ function toRow(row) {
     id: row.id,
     issuer: row.issuer ?? null,
     issuer_name: row.issuer_name ?? '',
+    closure: row.closure ?? null,
     issued_at: row.issued_at ?? null,
     invoice_number: row.invoice_number ?? '',
     invoice_title: row.invoice_title ?? '',

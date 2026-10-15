@@ -3,6 +3,7 @@
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import UATotals from './UATotals.svelte';
+  import { hasRemainingServices } from '$lib/v2/billing.js';
   import './billing.css';
   /** @type {{invoice:any,acts?:any[],form?:any}} */ let { invoice, acts = [], form } = $props();
   let busy = $state(false);
@@ -25,9 +26,7 @@
       busy = false;
     };
   };
-  let remaining = $derived(
-    invoice.closure?.lines?.some((line) => Number(line.remaining_quantity) > 0)
-  );
+  let remaining = $derived(hasRemainingServices(invoice));
 </script>
 
 <PageHeader title={invoice.issued_at ? invoice.invoice_number : 'Чернетка рахунку'}

@@ -29,7 +29,7 @@
           >
         </form>
         {#if !data.invoices.length}<p class="b-muted" style="margin-top:15px">
-            Спочатку випишіть рахунок від нашої компанії.
+            Немає виписаних українських рахунків із залишком послуг для закриття.
           </p>{/if}
       </section>
     </div>{/if}
