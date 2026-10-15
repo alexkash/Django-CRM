@@ -98,6 +98,8 @@ class BankAccountView(BillingView):
         rows = LegalEntityBankAccount.objects.filter(
             org=request.profile.org, entity=entity
         )
+        if not is_org_admin(request.profile):
+            rows = rows.filter(active=True)
         if bank_id:
             return Response(
                 BankAccountSerializer(get_object_or_404(rows, pk=bank_id)).data

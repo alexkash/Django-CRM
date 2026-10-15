@@ -123,3 +123,29 @@ def test_number_constraints_allow_company_sequences_without_weakening_generic_un
                 invoice_title="Duplicate",
                 invoice_number="SAME-000001",
             )
+
+
+def test_member_bank_reads_follow_archive_and_reactivation(admin_client, user_client):
+    entity = admin_client.post(BASE, company_payload(), format="json").data["id"]
+    collection = BASE + entity + "/bank-accounts/"
+    created = admin_client.post(
+        collection,
+        {"iban": "UA273000010000000000000000001", "bank_name": "Test bank"},
+        format="json",
+    )
+    assert created.status_code == 201
+    bank = created.data["id"]
+    detail = collection + bank + "/"
+    assert user_client.get(detail).status_code == 200
+    assert [row["id"] for row in user_client.get(collection).data["results"]] == [bank]
+    assert (
+        admin_client.patch(detail, {"active": False}, format="json").status_code == 200
+    )
+    assert user_client.get(collection).data["results"] == []
+    assert user_client.get(detail).status_code == 404
+    assert admin_client.get(detail).data["active"] is False
+    assert [row["id"] for row in admin_client.get(collection).data["results"]] == [bank]
+    assert (
+        admin_client.patch(detail, {"active": True}, format="json").status_code == 200
+    )
+    assert user_client.get(detail).status_code == 200
