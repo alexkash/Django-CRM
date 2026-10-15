@@ -14,6 +14,25 @@ from common.base import AssignableMixin, BaseModel
 from common.models import Org, Profile, Teams
 from common.utils import COUNTRIES, CURRENCY_CODES
 from contacts.models import Contact
+from invoices.billing.models import (
+    ArchivedDocument,
+    BillingManager,
+)
+from invoices.billing.models import (
+    DocumentSequence as DocumentSequence,
+)  # noqa: F401
+from invoices.billing.models import (
+    LegalEntity as LegalEntity,
+)
+from invoices.billing.models import (
+    LegalEntityBankAccount as LegalEntityBankAccount,
+)
+from invoices.billing.models import (
+    ServiceAct as ServiceAct,
+)
+from invoices.billing.models import (
+    ServiceActLine as ServiceActLine,
+)
 from opportunity.models import Opportunity
 
 # =============================================================================
@@ -240,6 +259,8 @@ class InvoiceTemplate(BaseModel):
 class Product(BaseModel):
     """Product Catalog for Line Items"""
 
+    unit = models.CharField(max_length=30, blank=True)
+
     name = models.CharField(_("Product Name"), max_length=255)
     description = models.TextField(_("Description"), blank=True, null=True)
     sku = models.CharField(_("SKU"), max_length=100, blank=True, null=True)
@@ -281,11 +302,12 @@ def _next_number(model, field, prefix, org_id):
                 "SELECT pg_advisory_xact_lock(hashtext(%s))",
                 [f"{model._meta.db_table}:{org_id}"],
             )
-    result = (
-        model.objects.filter(org_id=org_id, **{f"{field}__startswith": prefix})
-        .annotate(seq_num=Cast(Substr(field, len(prefix) + 1), IntegerField()))
-        .aggregate(max_seq=Max("seq_num"))
-    )
+    rows = model.objects.filter(org_id=org_id, **{f"{field}__startswith": prefix})
+    if model._meta.model_name == "invoice":
+        rows = rows.filter(issuer__isnull=True)
+    result = rows.annotate(
+        seq_num=Cast(Substr(field, len(prefix) + 1), IntegerField())
+    ).aggregate(max_seq=Max("seq_num"))
     return f"{prefix}{(result['max_seq'] or 0) + 1:04d}"
 
 
@@ -294,7 +316,7 @@ def _next_number(model, field, prefix, org_id):
 # =============================================================================
 
 
-class Invoice(AssignableMixin, BaseModel):
+class Invoice(AssignableMixin, ArchivedDocument, BaseModel):
     """
     Invoice model with full CRM integration.
 
@@ -303,6 +325,37 @@ class Invoice(AssignableMixin, BaseModel):
     - contact: MANDATORY (via serializer) - The "Bill To" contact
     - opportunity: Optional but recommended for ROI/commission tracking
     """
+
+    objects = BillingManager()
+    issuer = models.ForeignKey(
+        "invoices.LegalEntity",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="invoices",
+    )
+    bank_account = models.ForeignKey(
+        "invoices.LegalEntityBankAccount",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="invoices",
+    )
+    payer = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="payer_invoices",
+    )
+    contract_number = models.CharField(max_length=100, blank=True)
+    contract_date = models.DateField(null=True, blank=True)
+    order_reference = models.CharField(max_length=255, blank=True)
+    service_period_start = models.DateField(null=True, blank=True)
+    service_period_end = models.DateField(null=True, blank=True)
+    place_of_issue = models.CharField(max_length=100, blank=True)
+    vat_status = models.CharField(max_length=12, blank=True)
+    draft_parties = models.JSONField(default=dict, blank=True)
 
     # Core Invoice Info
     invoice_title = models.CharField(_("Invoice Title"), max_length=100)
@@ -490,6 +543,7 @@ class Invoice(AssignableMixin, BaseModel):
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
         db_table = "invoice"
+        base_manager_name = "objects"
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["org", "-created_at"]),
@@ -501,7 +555,13 @@ class Invoice(AssignableMixin, BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["org", "invoice_number"],
+                condition=models.Q(issuer__isnull=True),
                 name="unique_invoice_number_per_org",
+            ),
+            models.UniqueConstraint(
+                fields=["org", "issuer", "invoice_number"],
+                condition=models.Q(issuer__isnull=False),
+                name="unique_ua_invoice_number",
             ),
         ]
 
@@ -514,7 +574,11 @@ class Invoice(AssignableMixin, BaseModel):
         with transaction.atomic():
             # Generate invoice number if not set
             if not self.invoice_number:
-                self.invoice_number = self.generate_invoice_number()
+                self.invoice_number = (
+                    f"DRAFT-{self.pk}"
+                    if self.issuer_id
+                    else self.generate_invoice_number()
+                )
 
             # Generate public token if not set (with collision check)
             if not self.public_token:
@@ -641,6 +705,8 @@ class InvoiceLineItem(LineAmounts, BaseModel):
     unit_price = models.DecimalField(
         _("Unit Price"), max_digits=12, decimal_places=2, default=0
     )
+
+    unit = models.CharField(max_length=30, blank=True)
 
     # Per-item discount
     discount_type = models.CharField(

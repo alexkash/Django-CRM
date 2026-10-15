@@ -277,6 +277,19 @@ def _generic_keyed_models():
 # and a first name from one person beside a last name from the other names
 # nobody.
 FIELD_GROUPS = (
+    # A billing identity and its bank/signer particulars must not mix companies.
+    (
+        "legal_name",
+        "registration_code",
+        "vat_registration_number",
+        "legal_address",
+        "iban",
+        "bank_name",
+        "mfo",
+        "tax_system_text",
+        "signer_name",
+        "signer_title",
+    ),
     ("address_line", "city", "state", "postcode", "country"),
     ("salutation", "first_name", "last_name"),
 )

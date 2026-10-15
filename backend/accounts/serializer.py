@@ -128,6 +128,16 @@ class AccountSerializer(serializers.ModelSerializer):
         model = Account
         fields = (
             "id",
+            "legal_name",
+            "registration_code",
+            "vat_registration_number",
+            "legal_address",
+            "iban",
+            "bank_name",
+            "mfo",
+            "tax_system_text",
+            "signer_name",
+            "signer_title",
             # Core Account Information
             "name",
             "email",
@@ -301,6 +311,16 @@ class AccountCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = (
+            "legal_name",
+            "registration_code",
+            "vat_registration_number",
+            "legal_address",
+            "iban",
+            "bank_name",
+            "mfo",
+            "tax_system_text",
+            "signer_name",
+            "signer_title",
             # Core Account Information
             "name",
             "email",

@@ -896,6 +896,7 @@ class PaymentDetailView(APIView):
                 id=pk, invoice_id=invoice_id, org=request.profile.org
             )
             .select_related("invoice")
+            .defer("invoice__archived_pdf_clean", "invoice__archived_pdf_stamped")
             .first()
         )
         if not payment:

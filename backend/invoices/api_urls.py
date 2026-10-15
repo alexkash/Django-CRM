@@ -1,10 +1,11 @@
-from django.urls import path
+from django.urls import include, path
 
 from invoices import api_views, export_views
 
 app_name = "api_invoices"
 
 urlpatterns = [
+    path("billing/", include("invoices.billing.urls")),
     # ==========================================================================
     # INVOICES
     # ==========================================================================
