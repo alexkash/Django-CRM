@@ -18,10 +18,12 @@ export async function load(event) {
     throw err;
   }
 }
-const failure = (err, values = undefined) =>
+const failure = (err, values = undefined, bankState = undefined) =>
   fail([400, 403, 404, 409].includes(err.status) ? err.status : 400, {
     error: readableError(err, 'Не вдалося зберегти зміни.'),
-    values
+    values,
+    bank_values: bankState?.values,
+    bank_id: bankState?.id
   });
 export const actions = {
   save: async (event) => {
@@ -41,16 +43,18 @@ export const actions = {
   },
   bank: async (event) => {
     const form = await event.request.formData();
+    const bankId = String(form.get('bank_id') ?? '') || null;
+    const values = {
+      iban: String(form.get('iban') ?? ''),
+      bank_name: String(form.get('bank_name') ?? ''),
+      mfo: String(form.get('mfo') ?? ''),
+      active: form.get('active') !== 'false'
+    };
     try {
-      await saveBankAccount(event, event.params.id, String(form.get('bank_id') ?? '') || null, {
-        iban: String(form.get('iban') ?? ''),
-        bank_name: String(form.get('bank_name') ?? ''),
-        mfo: String(form.get('mfo') ?? ''),
-        active: form.get('active') !== 'false'
-      });
+      await saveBankAccount(event, event.params.id, bankId, values);
       return { saved: true };
     } catch (err) {
-      return failure(err);
+      return failure(err, undefined, { id: bankId, values });
     }
   },
   scan: async (event) => {

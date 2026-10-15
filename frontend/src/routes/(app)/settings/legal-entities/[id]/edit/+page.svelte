@@ -6,6 +6,7 @@
   import LegalEntityFields from '$lib/v2/components/billing/LegalEntityFields.svelte';
   /** @type {{data:any,form?:any}} */ let { data, form } = $props();
   let values = $state(untrack(() => ({ ...data.entity, ...(form?.values ?? {}) })));
+  let newBank = $derived(form?.bank_values && !form.bank_id ? form.bank_values : {});
   const scans = [
     ['signature', 'Підпис'],
     ['stamp', 'Печатка']
@@ -35,18 +36,21 @@
     </form>
     <section>
       <h2>Банківські рахунки</h2>
-      {#each data.banks as bank}<form
-          method="POST"
-          action="?/bank"
-          use:enhance
-          style="margin-bottom:22px"
-        >
+      {#each data.banks as bank}
+        {@const draftBank =
+          form?.bank_id === bank.id && form.bank_values ? { ...bank, ...form.bank_values } : bank}
+        <form method="POST" action="?/bank" use:enhance style="margin-bottom:22px">
           <input type="hidden" name="bank_id" value={bank.id} />
           <div class="b-grid">
-            <label><span>IBAN</span><input name="iban" value={bank.iban} required /></label><label
-              ><span>Банк</span><input name="bank_name" value={bank.bank_name} required /></label
-            ><label><span>МФО</span><input name="mfo" value={bank.mfo} /></label><label
-              ><span>Статус рахунку</span><select name="active" value={String(bank.active)}
+            <label><span>IBAN</span><input name="iban" value={draftBank.iban} required /></label
+            ><label
+              ><span>Банк</span><input
+                name="bank_name"
+                value={draftBank.bank_name}
+                required
+              /></label
+            ><label><span>МФО</span><input name="mfo" value={draftBank.mfo} /></label><label
+              ><span>Статус рахунку</span><select name="active" value={String(draftBank.active)}
                 ><option value="true">Активний</option><option value="false">Архівний</option
                 ></select
               ></label
@@ -54,13 +58,24 @@
           </div>
           <button class="v2-btn" style="margin-top:10px">Зберегти рахунок</button>
         </form>{/each}
-      <details open={!data.banks.length}>
+      <details open={!data.banks.length || (form?.bank_values && !form.bank_id)}>
         <summary>Додати банківський рахунок</summary>
         <form method="POST" action="?/bank" use:enhance>
+          <input type="hidden" name="active" value={String(newBank.active ?? true)} />
           <div class="b-grid">
-            <label><span>Новий IBAN</span><input name="iban" required /></label><label
-              ><span>Назва банку</span><input name="bank_name" required /></label
-            ><label><span>МФО</span><input name="mfo" /></label>
+            <label
+              ><span>Новий IBAN</span><input
+                name="iban"
+                value={newBank.iban ?? ''}
+                required
+              /></label
+            ><label
+              ><span>Назва банку</span><input
+                name="bank_name"
+                value={newBank.bank_name ?? ''}
+                required
+              /></label
+            ><label><span>МФО</span><input name="mfo" value={newBank.mfo ?? ''} /></label>
           </div>
           <button class="v2-btn" style="margin-top:12px">Додати рахунок</button>
         </form>
