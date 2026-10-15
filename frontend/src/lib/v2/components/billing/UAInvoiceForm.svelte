@@ -11,7 +11,7 @@
   import UATotals from './UATotals.svelte';
   import './billing.css';
   /** @type {{data:any,form?:any,initial?:any,action?:string}} */
-  let { data, form, initial = null, action = '?/create' } = $props();
+  let { data, form, initial = null, action = '?format=ua&/create' } = $props();
   let values = $state(
     untrack(() => ({
       ...{
@@ -37,9 +37,10 @@
         ]
       },
       ...(initial ?? {}),
+      ...(form?.values ?? {}),
       draft_parties: {
-        customer: { ...(initial?.draft_parties?.customer ?? {}) },
-        payer: { ...(initial?.draft_parties?.payer ?? {}) }
+        customer: { ...((form?.values ?? initial)?.draft_parties?.customer ?? {}) },
+        payer: { ...((form?.values ?? initial)?.draft_parties?.payer ?? {}) }
       }
     }))
   );

@@ -66,6 +66,7 @@ export const actions = {
       created = await createInvoice({ cookies }, body);
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
+        values: body,
         error: readableError(err, 'Could not create the invoice.')
       });
     }

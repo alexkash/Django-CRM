@@ -10,16 +10,22 @@
   let { data, form, initial = null } = $props();
   let values = $state(
     untrack(() => ({
-      invoice_id: data.invoice.id,
       issue_date: initial?.issue_date ?? todayIn(data.org?.timezone ?? 'UTC'),
       service_period_start:
         initial?.service_period_start ?? data.invoice.service_period_start ?? '',
-      service_period_end: initial?.service_period_end ?? data.invoice.service_period_end ?? ''
+      service_period_end: initial?.service_period_end ?? data.invoice.service_period_end ?? '',
+      ...(form?.values ?? {}),
+      invoice_id: data.invoice.id
     }))
   );
   let quantities = $state(
     untrack(() =>
-      Object.fromEntries((initial?.lines ?? []).map((line) => [line.source_line_id, line.quantity]))
+      Object.fromEntries(
+        (form?.values?.lines ?? initial?.lines ?? []).map((line) => [
+          line.source_line_id,
+          line.quantity
+        ])
+      )
     )
   );
   let busy = $state(false);
@@ -46,7 +52,7 @@
   {#if form?.error}<div class="b-error" role="alert">{form.error}</div>{/if}
   <form
     method="POST"
-    action="?/save"
+    action={`?invoice=${encodeURIComponent(data.invoice.id)}&/save`}
     use:enhance={() => {
       busy = true;
       return async ({ update }) => {
