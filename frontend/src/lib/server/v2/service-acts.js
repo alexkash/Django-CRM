@@ -16,6 +16,21 @@ export function listActs(event, params = new URLSearchParams()) {
     if (params.get(key)) query.set(key, params.get(key));
   return apiRequest(BASE + (query.size ? '?' + query : ''), {}, event);
 }
+/** Load the complete embedded history without trusting an external next URL. */
+export async function listInvoiceActs(event, invoiceId) {
+  const acts = [];
+  let offset = 0;
+  while (true) {
+    const page = await listActs(
+      event,
+      new URLSearchParams({ invoice: invoiceId, limit: '100', offset: String(offset) })
+    );
+    acts.push(...page.results);
+    if (!page.next || page.results.length === 0) return acts;
+    offset += page.results.length;
+  }
+}
+
 export function getAct(event, id) {
   return apiRequest(`${BASE}${id}/`, {}, event);
 }

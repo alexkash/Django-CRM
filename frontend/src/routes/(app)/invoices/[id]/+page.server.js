@@ -1,4 +1,4 @@
-import { listActs } from '$lib/server/v2/service-acts.js';
+import { listInvoiceActs } from '$lib/server/v2/service-acts.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
   getInvoice,
@@ -19,9 +19,7 @@ export async function load({ cookies, params }) {
   const detail = await getInvoice({ cookies }, params.id);
   return {
     ...detail,
-    acts: detail.billing
-      ? (await listActs({ cookies }, new URLSearchParams({ invoice: params.id }))).results
-      : []
+    acts: detail.billing?.issuer_id ? await listInvoiceActs({ cookies }, params.id) : []
   };
 }
 
