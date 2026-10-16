@@ -124,6 +124,7 @@ def test_act_creation_requires_parent_and_lines(billing_schema):
         billing_schema, op["requestBody"]["content"]["application/json"]["schema"]
     )
     assert {"invoice_id", "lines"} <= set(body.get("required", []))
+    assert body["properties"]["lines"]["minItems"] == 1
 
 
 @pytest.mark.parametrize(

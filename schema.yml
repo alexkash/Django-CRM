@@ -12569,6 +12569,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ActLineInputRequest'
+          minItems: 1
       required:
       - invoice_id
       - lines
