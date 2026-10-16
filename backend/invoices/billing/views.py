@@ -20,6 +20,7 @@ from invoices.serializer import InvoiceSerializer
 from .assets import normalize_scan
 from .models import LegalEntity, LegalEntityBankAccount
 from .serializers import (
+    ActCreateRequestSerializer,
     ActInputSerializer,
     BankAccountSerializer,
     LegalEntitySerializer,
@@ -64,6 +65,11 @@ class LegalEntityListView(BillingView):
         return Response(LegalEntitySerializer(entity).data, status=201)
 
 
+@extend_schema_view(
+    put=extend_schema(
+        request=LegalEntitySerializer(partial=True), responses=LegalEntitySerializer
+    ),
+)
 class LegalEntityDetailView(BillingView):
     serializer_class = LegalEntitySerializer
 
@@ -194,7 +200,7 @@ class BankAccountListView(BankAccountView):
     ),
     put=extend_schema(
         operation_id="billing_bank_account_update",
-        request=BankAccountSerializer,
+        request=BankAccountSerializer(partial=True),
         responses=BankAccountSerializer,
     ),
     patch=extend_schema(
@@ -340,7 +346,7 @@ def pdf_response(content, number):
         }
     ),
     post=extend_schema(
-        request=ActInputSerializer, responses={201: ServiceActSerializer}
+        request=ActCreateRequestSerializer, responses={201: ServiceActSerializer}
     ),
 )
 class ServiceActListView(BillingView):

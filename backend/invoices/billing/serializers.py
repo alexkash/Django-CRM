@@ -109,6 +109,13 @@ class ActInputSerializer(serializers.Serializer):
     lines = ActLineInputSerializer(many=True, required=False, allow_empty=False)
 
 
+class ActCreateRequestSerializer(ActInputSerializer):
+    """Document the fields checked by the create view and service."""
+
+    invoice_id = serializers.UUIDField()
+    lines = ActLineInputSerializer(many=True, allow_empty=False)
+
+
 class ServiceActLineSerializer(serializers.ModelSerializer):
     source_line_id = serializers.UUIDField(read_only=True)
 

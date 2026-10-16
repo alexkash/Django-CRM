@@ -15,7 +15,16 @@ from invoices.serializer import (
 )
 
 
-class InvoiceCreateRequestSerializer(InvoiceCreateSerializer):
+class InvoiceWriteRequestSerializer(InvoiceCreateSerializer):
+    """Custom fields are parsed by the view outside the runtime serializer."""
+
+    custom_fields = serializers.JSONField(required=False, allow_null=True)
+
+    class Meta(InvoiceCreateSerializer.Meta):
+        fields = (*InvoiceCreateSerializer.Meta.fields, "custom_fields")
+
+
+class InvoiceCreateRequestSerializer(InvoiceWriteRequestSerializer):
     """Create requires account/contact; issuer opts into the Ukrainian form."""
 
     account_id = serializers.UUIDField(required=True)

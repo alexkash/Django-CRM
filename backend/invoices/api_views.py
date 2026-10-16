@@ -38,6 +38,7 @@ from invoices.api_schema import (
     InvoiceDetailResponseSerializer,
     InvoiceListResponseSerializer,
     InvoiceMutationResponseSerializer,
+    InvoiceWriteRequestSerializer,
 )
 from invoices.models import (
     UNPAID_STATUSES,
@@ -377,7 +378,7 @@ class InvoiceDetailView(APIView):
     @extend_schema(
         tags=["Invoices"],
         operation_id="invoices_update",
-        request=InvoiceCreateSerializer(partial=True),
+        request=InvoiceWriteRequestSerializer(partial=True),
         responses={200: InvoiceMutationResponseSerializer},
     )
     def put(self, request, pk, format=None):

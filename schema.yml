@@ -5329,13 +5329,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedInvoiceCreateRequest'
+              $ref: '#/components/schemas/PatchedInvoiceWriteRequestRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedInvoiceCreateRequest'
+              $ref: '#/components/schemas/PatchedInvoiceWriteRequestRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedInvoiceCreateRequest'
+              $ref: '#/components/schemas/PatchedInvoiceWriteRequestRequest'
       security:
       - PersonalAccessToken: []
       - jwtAuth: []
@@ -5522,13 +5522,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ActInputRequest'
+              $ref: '#/components/schemas/ActCreateRequestRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ActInputRequest'
+              $ref: '#/components/schemas/ActCreateRequestRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ActInputRequest'
+              $ref: '#/components/schemas/ActCreateRequestRequest'
+        required: true
       security:
       - PersonalAccessToken: []
       - jwtAuth: []
@@ -5787,14 +5788,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LegalEntityRequest'
+              $ref: '#/components/schemas/PatchedLegalEntityRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/LegalEntityRequest'
+              $ref: '#/components/schemas/PatchedLegalEntityRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/LegalEntityRequest'
-        required: true
+              $ref: '#/components/schemas/PatchedLegalEntityRequest'
       security:
       - PersonalAccessToken: []
       - jwtAuth: []
@@ -5946,14 +5946,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BankAccountRequest'
+              $ref: '#/components/schemas/PatchedBankAccountRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/BankAccountRequest'
+              $ref: '#/components/schemas/PatchedBankAccountRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/BankAccountRequest'
-        required: true
+              $ref: '#/components/schemas/PatchedBankAccountRequest'
       security:
       - PersonalAccessToken: []
       - jwtAuth: []
@@ -12485,6 +12484,31 @@ components:
           title: Notes
       required:
       - name
+    ActCreateRequestRequest:
+      type: object
+      description: Document the fields checked by the create view and service.
+      properties:
+        invoice_id:
+          type: string
+          format: uuid
+        issue_date:
+          type: string
+          format: date
+        service_period_start:
+          type: string
+          format: date
+          nullable: true
+        service_period_end:
+          type: string
+          format: date
+          nullable: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActLineInputRequest'
+      required:
+      - invoice_id
+      - lines
     ActInputRequest:
       type: object
       properties:
@@ -17107,6 +17131,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InvoiceLineItemCreateRequest'
+        custom_fields:
+          nullable: true
       required:
       - account_id
       - contact_id
@@ -20386,9 +20412,9 @@ components:
         help_center_slug:
           type: string
           nullable: true
-    PatchedInvoiceCreateRequest:
+    PatchedInvoiceWriteRequestRequest:
       type: object
-      description: Serializer for creating/updating Invoices with CRM validation
+      description: Custom fields are parsed by the view outside the runtime serializer.
       properties:
         issuer_id:
           type: string
@@ -20559,6 +20585,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InvoiceLineItemCreateRequest'
+        custom_fields:
+          nullable: true
     PatchedLeadCommentEditSwaggerRequest:
       type: object
       properties:

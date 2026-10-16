@@ -50,6 +50,7 @@ def test_invoice_create_and_partial_update_contracts(invoice_schema):
         schema, create["requestBody"]["content"]["application/json"]["schema"]
     )
     assert {"account_id", "contact_id", "invoice_title"} <= set(request["required"])
+    assert "custom_fields" in request["properties"]
     assert {
         "issuer_id",
         "bank_account_id",
@@ -66,6 +67,7 @@ def test_invoice_create_and_partial_update_contracts(invoice_schema):
         schema, path_item["put"]["requestBody"]["content"]["application/json"]["schema"]
     )
     assert "invoice_title" not in update.get("required", [])
+    assert "custom_fields" in update["properties"]
 
 
 def test_invoice_detail_documents_frozen_parties_as_an_object(invoice_schema):
@@ -84,3 +86,51 @@ def test_invoice_detail_documents_frozen_parties_as_an_object(invoice_schema):
     row = resolve(schema, response["properties"]["invoice"])
     assert row["properties"]["printed_parties"]["type"] == "object"
     assert row["properties"]["printed_parties"].get("nullable") is True
+
+
+@pytest.fixture
+def billing_schema():
+    from invoices.billing.views import (
+        BankAccountDetailView,
+        LegalEntityDetailView,
+        ServiceActListView,
+    )
+
+    return SchemaGenerator(
+        patterns=[
+            path("api/invoices/billing/acts/", ServiceActListView.as_view()),
+            path(
+                "api/invoices/billing/legal-entities/<uuid:pk>/",
+                LegalEntityDetailView.as_view(),
+            ),
+            path(
+                "api/invoices/billing/legal-entities/<uuid:pk>/bank-accounts/<uuid:bank_id>/",
+                BankAccountDetailView.as_view(),
+            ),
+        ]
+    ).get_schema(request=None, public=True)
+
+
+def test_act_creation_requires_parent_and_lines(billing_schema):
+    op = billing_schema["paths"]["/api/invoices/billing/acts/"]["post"]
+    body = resolve(
+        billing_schema, op["requestBody"]["content"]["application/json"]["schema"]
+    )
+    assert {"invoice_id", "lines"} <= set(body.get("required", []))
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/api/invoices/billing/legal-entities/{id}/",
+        "/api/invoices/billing/legal-entities/{id}/bank-accounts/{bank_id}/",
+    ],
+)
+def test_billing_put_requests_are_partial(billing_schema, endpoint):
+    item = billing_schema["paths"][endpoint]
+    body = resolve(
+        billing_schema,
+        item["put"]["requestBody"]["content"]["application/json"]["schema"],
+    )
+    assert not body.get("required")
+    assert "active" in body["properties"]
