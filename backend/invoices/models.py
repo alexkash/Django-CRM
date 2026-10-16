@@ -694,7 +694,7 @@ class Invoice(AssignableMixin, ArchivedDocument, BaseModel):
         return f"{currency} {self.amount_due}"
 
     @property
-    def is_overdue(self):
+    def is_overdue(self) -> bool:
         if self.due_date and self.status not in ["Paid", "Cancelled"]:
             return timezone.localdate() > self.due_date
         return False

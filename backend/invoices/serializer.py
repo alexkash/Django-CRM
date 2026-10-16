@@ -818,7 +818,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             return f"{obj.contact.first_name} {obj.contact.last_name}"
         return None
 
-    def get_line_items_count(self, obj):
+    def get_line_items_count(self, obj) -> int:
         return obj.line_items.count()
 
 

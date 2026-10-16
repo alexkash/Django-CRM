@@ -12,7 +12,8 @@ from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.pagination import LimitOffsetPagination
@@ -690,7 +691,16 @@ class InvoicePDFView(APIView):
 
     permission_classes = (IsAuthenticated, HasOrgContext)
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_pdf")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_pdf",
+        parameters=[
+            OpenApiParameter(
+                "variant", OpenApiTypes.STR, enum=["clean", "stamped"], default="clean"
+            ),
+        ],
+        responses={(200, "application/pdf"): OpenApiTypes.BINARY},
+    )
     def get(self, request, pk):
         invoice, error = get_invoice_or_error(request, pk)
         if error:

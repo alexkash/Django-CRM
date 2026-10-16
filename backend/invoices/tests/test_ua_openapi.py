@@ -4,7 +4,7 @@ import pytest
 from django.urls import path
 from drf_spectacular.generators import SchemaGenerator
 
-from invoices.api_views import InvoiceDetailView, InvoiceListView
+from invoices.api_views import InvoiceDetailView, InvoiceListView, InvoicePDFView
 
 
 @pytest.fixture
@@ -13,6 +13,7 @@ def invoice_schema():
         patterns=[
             path("api/invoices/", InvoiceListView.as_view()),
             path("api/invoices/<uuid:pk>/", InvoiceDetailView.as_view()),
+            path("api/invoices/<uuid:pk>/pdf/", InvoicePDFView.as_view()),
         ]
     ).get_schema(request=None, public=True)
 
@@ -38,6 +39,8 @@ def test_invoice_list_envelope_and_closure_are_documented(invoice_schema):
     ].keys()
     row = resolve(schema, body["properties"]["results"]["items"])
     closure = resolve(schema, row["properties"]["closure"])
+    assert row["properties"]["is_overdue"]["type"] == "boolean"
+    assert row["properties"]["line_items_count"]["type"] == "integer"
     assert closure["type"] == "object"
     assert closure.get("nullable") is True
     assert not {"archived_pdf_clean", "archived_pdf_stamped"} & row["properties"].keys()
@@ -62,7 +65,7 @@ def test_invoice_create_and_partial_update_contracts(invoice_schema):
         schema, create["responses"]["201"]["content"]["application/json"]["schema"]
     )
     assert {"error", "message", "invoice"} <= response["properties"].keys()
-    path_item = next(v for k, v in schema["paths"].items() if k != "/api/invoices/")
+    path_item = next(v for k, v in schema["paths"].items() if k.endswith("/{id}/"))
     update = resolve(
         schema, path_item["put"]["requestBody"]["content"]["application/json"]["schema"]
     )
@@ -72,7 +75,7 @@ def test_invoice_create_and_partial_update_contracts(invoice_schema):
 
 def test_invoice_detail_documents_frozen_parties_as_an_object(invoice_schema):
     schema = invoice_schema
-    op = next(v for k, v in schema["paths"].items() if k != "/api/invoices/")["get"]
+    op = next(v for k, v in schema["paths"].items() if k.endswith("/{id}/"))["get"]
     response = resolve(
         schema, op["responses"]["200"]["content"]["application/json"]["schema"]
     )
@@ -94,11 +97,15 @@ def billing_schema():
         BankAccountDetailView,
         LegalEntityDetailView,
         ServiceActListView,
+        ServiceActPDFView,
     )
 
     return SchemaGenerator(
         patterns=[
             path("api/invoices/billing/acts/", ServiceActListView.as_view()),
+            path(
+                "api/invoices/billing/acts/<uuid:pk>/pdf/", ServiceActPDFView.as_view()
+            ),
             path(
                 "api/invoices/billing/legal-entities/<uuid:pk>/",
                 LegalEntityDetailView.as_view(),
@@ -134,3 +141,35 @@ def test_billing_put_requests_are_partial(billing_schema, endpoint):
     )
     assert not body.get("required")
     assert "active" in body["properties"]
+
+
+def test_act_list_documents_filters_and_pagination(billing_schema):
+    op = billing_schema["paths"]["/api/invoices/billing/acts/"]["get"]
+    params = {p["name"]: p for p in op.get("parameters", [])}
+    assert {
+        "invoice",
+        "account",
+        "issuer",
+        "status",
+        "period_start",
+        "period_end",
+        "limit",
+        "offset",
+    } <= params.keys()
+    assert params["invoice"]["schema"]["format"] == "uuid"
+    assert params["period_start"]["schema"]["format"] == "date"
+    assert params["limit"]["schema"]["type"] == "integer"
+    assert set(params["status"]["schema"]["enum"]) == {"Draft", "Issued", "Cancelled"}
+
+
+@pytest.mark.parametrize("kind", ["invoice", "act"])
+def test_pdf_download_contract_has_binary_body_and_variant(
+    invoice_schema, billing_schema, kind
+):
+    schema = invoice_schema if kind == "invoice" else billing_schema
+    op = next(v["get"] for k, v in schema["paths"].items() if k.endswith("/pdf/"))
+    body = op["responses"]["200"]["content"]["application/pdf"]["schema"]
+    assert body == {"type": "string", "format": "binary"}
+    variant = next(p for p in op["parameters"] if p["name"] == "variant")
+    assert set(variant["schema"]["enum"]) == {"clean", "stamped"}
+    assert not variant.get("required", False)

@@ -5441,6 +5441,14 @@ paths:
           type: string
           format: uuid
         required: true
+      - in: query
+        name: variant
+        schema:
+          type: string
+          enum:
+          - clean
+          - stamped
+          default: clean
       tags:
       - Invoices
       security:
@@ -5449,7 +5457,12 @@ paths:
       - APIKeyAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: ''
   /api/invoices/{id}/send/:
     post:
       operationId: invoices_send
@@ -5501,6 +5514,48 @@ paths:
   /api/invoices/billing/acts/:
     get:
       operationId: invoices_billing_acts_retrieve
+      parameters:
+      - in: query
+        name: account
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: invoice
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: issuer
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: limit
+        schema:
+          type: integer
+      - in: query
+        name: offset
+        schema:
+          type: integer
+      - in: query
+        name: period_end
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: period_start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - Cancelled
+          - Draft
+          - Issued
       tags:
       - invoices
       security:
@@ -5693,6 +5748,14 @@ paths:
           type: string
           format: uuid
         required: true
+      - in: query
+        name: variant
+        schema:
+          type: string
+          enum:
+          - clean
+          - stamped
+          default: clean
       tags:
       - invoices
       security:
@@ -17454,10 +17517,10 @@ components:
         currency:
           $ref: '#/components/schemas/CurrencyEnum'
         is_overdue:
-          type: string
+          type: boolean
           readOnly: true
         line_items_count:
-          type: string
+          type: integer
           readOnly: true
         created_at:
           type: string
