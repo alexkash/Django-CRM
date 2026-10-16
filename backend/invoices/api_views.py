@@ -12,7 +12,8 @@ from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.pagination import LimitOffsetPagination
@@ -33,6 +34,14 @@ from common.serializer import (
 from common.utils import create_attachment
 from common.validators import date_param, payload_id_list, uuid_param, validate_uuid
 from contacts.access import visible_contacts_qs
+from invoices.api_schema import (
+    INVOICE_LIST_PARAMETERS,
+    InvoiceCreateRequestSerializer,
+    InvoiceDetailResponseSerializer,
+    InvoiceListResponseSerializer,
+    InvoiceMutationResponseSerializer,
+    InvoiceWriteRequestSerializer,
+)
 from invoices.models import (
     UNPAID_STATUSES,
     Estimate,
@@ -176,7 +185,13 @@ class InvoiceListView(APIView, LimitOffsetPagination):
             .prefetch_related("line_items", "payments", "assigned_to")
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_list")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_list",
+        description="List visible invoices. Custom field filters use additional query keys cf_<key>=value.",
+        parameters=INVOICE_LIST_PARAMETERS,
+        responses={200: InvoiceListResponseSerializer},
+    )
     def get(self, request, *args, **kwargs):
         base = self.get_queryset()
         queryset = filter_invoices(base, request.query_params)
@@ -249,7 +264,12 @@ class InvoiceListView(APIView, LimitOffsetPagination):
             counts=("count", "action_needed"),
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_create")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_create",
+        request=InvoiceCreateRequestSerializer,
+        responses={201: InvoiceMutationResponseSerializer},
+    )
     def post(self, request, *args, **kwargs):
         cf_payload = request.data.get("custom_fields")
         if isinstance(cf_payload, str):
@@ -316,7 +336,11 @@ class InvoiceDetailView(APIView):
     def get_object(self, pk):
         return self.model.objects.filter(id=pk, org=self.request.profile.org).first()
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_retrieve")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_retrieve",
+        responses={200: InvoiceDetailResponseSerializer},
+    )
     def get(self, request, pk, format=None):
         invoice, error = get_invoice_or_error(request, pk)
         if error:
@@ -355,7 +379,12 @@ class InvoiceDetailView(APIView):
             }
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_update")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_update",
+        request=InvoiceWriteRequestSerializer(partial=True),
+        responses={200: InvoiceMutationResponseSerializer},
+    )
     def put(self, request, pk, format=None):
         with transaction.atomic():
             response, invoice = self._update(request, pk)
@@ -665,7 +694,16 @@ class InvoicePDFView(APIView):
 
     permission_classes = (IsAuthenticated, HasOrgContext)
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_pdf")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_pdf",
+        parameters=[
+            OpenApiParameter(
+                "variant", OpenApiTypes.STR, enum=["clean", "stamped"], default="clean"
+            ),
+        ],
+        responses={(200, "application/pdf"): OpenApiTypes.BINARY},
+    )
     def get(self, request, pk):
         invoice, error = get_invoice_or_error(request, pk)
         if error:

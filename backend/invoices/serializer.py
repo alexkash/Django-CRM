@@ -763,7 +763,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
 
     closure = serializers.SerializerMethodField()
 
-    def get_closure(self, obj):
+    def get_closure(self, obj) -> dict | None:
         if not obj.issuer_id:
             return None
         if "closure_summaries" in self.context:
@@ -774,7 +774,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
 
     issuer_name = serializers.SerializerMethodField()
 
-    def get_issuer_name(self, obj):
+    def get_issuer_name(self, obj) -> str:
         return (
             obj.print_snapshot.get("seller", {}).get("legal_name", "")
             if obj.issued_at
@@ -818,7 +818,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             return f"{obj.contact.first_name} {obj.contact.last_name}"
         return None
 
-    def get_line_items_count(self, obj):
+    def get_line_items_count(self, obj) -> int:
         return obj.line_items.count()
 
 
@@ -843,7 +843,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     closure = serializers.SerializerMethodField()
 
-    def get_closure(self, obj):
+    def get_closure(self, obj) -> dict | None:
         if not obj.issuer_id:
             return None
         from invoices.billing.services import get_closure_summary
@@ -852,7 +852,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     issuer_name = serializers.SerializerMethodField()
 
-    def get_issuer_name(self, obj):
+    def get_issuer_name(self, obj) -> str:
         return (
             obj.print_snapshot.get("seller", {}).get("legal_name", "")
             if obj.issued_at
@@ -863,7 +863,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     printed_parties = serializers.SerializerMethodField()
 
-    def get_printed_parties(self, obj):
+    def get_printed_parties(self, obj) -> dict | None:
         if not obj.issued_at:
             return None
         return {

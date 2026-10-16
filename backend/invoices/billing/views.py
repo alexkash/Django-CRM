@@ -2,7 +2,12 @@ from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
 from rest_framework import serializers as schema_fields
 from rest_framework.exceptions import (
     MethodNotAllowed,
@@ -20,6 +25,7 @@ from invoices.serializer import InvoiceSerializer
 from .assets import normalize_scan
 from .models import LegalEntity, LegalEntityBankAccount
 from .serializers import (
+    ActCreateRequestSerializer,
     ActInputSerializer,
     BankAccountSerializer,
     LegalEntitySerializer,
@@ -64,6 +70,11 @@ class LegalEntityListView(BillingView):
         return Response(LegalEntitySerializer(entity).data, status=201)
 
 
+@extend_schema_view(
+    put=extend_schema(
+        request=LegalEntitySerializer(partial=True), responses=LegalEntitySerializer
+    ),
+)
 class LegalEntityDetailView(BillingView):
     serializer_class = LegalEntitySerializer
 
@@ -194,7 +205,7 @@ class BankAccountListView(BankAccountView):
     ),
     put=extend_schema(
         operation_id="billing_bank_account_update",
-        request=BankAccountSerializer,
+        request=BankAccountSerializer(partial=True),
         responses=BankAccountSerializer,
     ),
     patch=extend_schema(
@@ -327,6 +338,18 @@ def pdf_response(content, number):
 
 @extend_schema_view(
     get=extend_schema(
+        parameters=[
+            OpenApiParameter("invoice", OpenApiTypes.UUID),
+            OpenApiParameter("account", OpenApiTypes.UUID),
+            OpenApiParameter("issuer", OpenApiTypes.UUID),
+            OpenApiParameter(
+                "status", OpenApiTypes.STR, enum=["Draft", "Issued", "Cancelled"]
+            ),
+            OpenApiParameter("period_start", OpenApiTypes.DATE),
+            OpenApiParameter("period_end", OpenApiTypes.DATE),
+            OpenApiParameter("limit", OpenApiTypes.INT),
+            OpenApiParameter("offset", OpenApiTypes.INT),
+        ],
         responses={
             200: inline_serializer(
                 name="ServiceActPage",
@@ -337,10 +360,10 @@ def pdf_response(content, number):
                     "results": ServiceActSerializer(many=True),
                 },
             )
-        }
+        },
     ),
     post=extend_schema(
-        request=ActInputSerializer, responses={201: ServiceActSerializer}
+        request=ActCreateRequestSerializer, responses={201: ServiceActSerializer}
     ),
 )
 class ServiceActListView(BillingView):
@@ -471,7 +494,14 @@ class ServiceActActionView(BillingView):
 
 
 @extend_schema_view(
-    get=extend_schema(responses={(200, "application/pdf"): OpenApiTypes.BINARY})
+    get=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "variant", OpenApiTypes.STR, enum=["clean", "stamped"], default="clean"
+            ),
+        ],
+        responses={(200, "application/pdf"): OpenApiTypes.BINARY},
+    )
 )
 class ServiceActPDFView(BillingView):
     def get(self, request, pk):

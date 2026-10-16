@@ -109,6 +109,15 @@ class ActInputSerializer(serializers.Serializer):
     lines = ActLineInputSerializer(many=True, required=False, allow_empty=False)
 
 
+class ActCreateRequestSerializer(ActInputSerializer):
+    """Document the fields checked by the create view and service."""
+
+    invoice_id = serializers.UUIDField()
+    lines = serializers.ListField(
+        child=ActLineInputSerializer(), allow_empty=False, min_length=1
+    )
+
+
 class ServiceActLineSerializer(serializers.ModelSerializer):
     source_line_id = serializers.UUIDField(read_only=True)
 
@@ -139,7 +148,7 @@ class ServiceActSerializer(serializers.ModelSerializer):
     )
     issuer_name = serializers.SerializerMethodField()
 
-    def get_issuer_name(self, obj):
+    def get_issuer_name(self, obj) -> str:
         return obj.invoice.print_snapshot.get("seller", {}).get("legal_name", "")
 
     lines = ServiceActLineSerializer(many=True, read_only=True)
