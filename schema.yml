@@ -5052,7 +5052,77 @@ paths:
   /api/invoices/:
     get:
       operationId: invoices_list
-      description: List and create invoices
+      description: List visible invoices. Custom field filters use additional query
+        keys cf_<key>=value.
+      parameters:
+      - in: query
+        name: account
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: assigned_to
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: contact
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: created_by
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: due_date_gte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: due_date_lte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: issue_date_gte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: issue_date_lte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: limit
+        schema:
+          type: integer
+      - in: query
+        name: offset
+        schema:
+          type: integer
+      - in: query
+        name: opportunity
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: sort
+        schema:
+          type: string
+          default: -created_at
+        description: created_at, due_date, issue_date, total_amount or status; prefix
+          with - for descending order.
+      - in: query
+        name: status
+        schema:
+          type: string
       tags:
       - Invoices
       security:

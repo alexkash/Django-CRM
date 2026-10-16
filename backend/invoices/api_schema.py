@@ -1,5 +1,7 @@
 """Documentation-only serializers for the existing invoice HTTP envelopes."""
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
 from common.serializer import (
@@ -13,6 +15,27 @@ from invoices.serializer import (
     InvoiceListSerializer,
     InvoiceSerializer,
 )
+
+INVOICE_LIST_PARAMETERS = [
+    OpenApiParameter("search", OpenApiTypes.STR),
+    OpenApiParameter("status", OpenApiTypes.STR),
+    *[
+        OpenApiParameter(name, OpenApiTypes.UUID)
+        for name in ("account", "contact", "opportunity", "assigned_to", "created_by")
+    ],
+    *[
+        OpenApiParameter(name, OpenApiTypes.DATE)
+        for name in ("issue_date_gte", "issue_date_lte", "due_date_gte", "due_date_lte")
+    ],
+    OpenApiParameter(
+        "sort",
+        OpenApiTypes.STR,
+        description="created_at, due_date, issue_date, total_amount or status; prefix with - for descending order.",
+        default="-created_at",
+    ),
+    OpenApiParameter("limit", OpenApiTypes.INT),
+    OpenApiParameter("offset", OpenApiTypes.INT),
+]
 
 
 class InvoiceWriteRequestSerializer(InvoiceCreateSerializer):

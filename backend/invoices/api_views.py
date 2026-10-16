@@ -35,6 +35,7 @@ from common.utils import create_attachment
 from common.validators import date_param, payload_id_list, uuid_param, validate_uuid
 from contacts.access import visible_contacts_qs
 from invoices.api_schema import (
+    INVOICE_LIST_PARAMETERS,
     InvoiceCreateRequestSerializer,
     InvoiceDetailResponseSerializer,
     InvoiceListResponseSerializer,
@@ -187,6 +188,8 @@ class InvoiceListView(APIView, LimitOffsetPagination):
     @extend_schema(
         tags=["Invoices"],
         operation_id="invoices_list",
+        description="List visible invoices. Custom field filters use additional query keys cf_<key>=value.",
+        parameters=INVOICE_LIST_PARAMETERS,
         responses={200: InvoiceListResponseSerializer},
     )
     def get(self, request, *args, **kwargs):

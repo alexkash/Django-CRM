@@ -174,3 +174,28 @@ def test_pdf_download_contract_has_binary_body_and_variant(
     variant = next(p for p in op["parameters"] if p["name"] == "variant")
     assert set(variant["schema"]["enum"]) == {"clean", "stamped"}
     assert not variant.get("required", False)
+
+
+def test_invoice_list_documents_fixed_filters_and_pagination(invoice_schema):
+    op = invoice_schema["paths"]["/api/invoices/"]["get"]
+    params = {p["name"]: p for p in op.get("parameters", [])}
+    assert {
+        "search",
+        "status",
+        "account",
+        "contact",
+        "opportunity",
+        "assigned_to",
+        "created_by",
+        "issue_date_gte",
+        "issue_date_lte",
+        "due_date_gte",
+        "due_date_lte",
+        "sort",
+        "limit",
+        "offset",
+    } <= params.keys()
+    assert params["account"]["schema"]["format"] == "uuid"
+    assert params["due_date_gte"]["schema"]["format"] == "date"
+    assert params["limit"]["schema"]["type"] == "integer"
+    assert "cf_<key>" in op["description"]
