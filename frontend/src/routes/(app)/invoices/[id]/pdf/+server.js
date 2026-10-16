@@ -13,13 +13,18 @@ import { env } from '$env/dynamic/public';
  *
  * @type {import('./$types').RequestHandler}
  */
-export async function GET({ params, cookies }) {
+export async function GET({ params, cookies, url }) {
   const token = cookies.get('jwt_access');
   if (!token) error(401, 'Not signed in.');
 
-  const upstream = await fetch(`${env.PUBLIC_DJANGO_API_URL}/api/invoices/${params.id}/pdf/`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const variant = url.searchParams.get('variant') ?? 'clean';
+  if (!['clean', 'stamped'].includes(variant)) error(400, 'Invalid PDF variant.');
+  const upstream = await fetch(
+    `${env.PUBLIC_DJANGO_API_URL}/api/invoices/${params.id}/pdf/?variant=${variant}`,
+    {
+      headers: { Authorization: `Bearer ${token}` }
+    }
+  );
 
   if (!upstream.ok) {
     // 403/404 collapse to 404: do not confirm an invoice exists to someone who
@@ -33,6 +38,7 @@ export async function GET({ params, cookies }) {
   const body = await upstream.arrayBuffer();
   return new Response(body, {
     headers: {
+      'Cache-Control': 'private, no-store',
       'Content-Type': 'application/pdf',
       'Content-Disposition':
         upstream.headers.get('content-disposition') ?? `inline; filename="invoice-${params.id}.pdf"`

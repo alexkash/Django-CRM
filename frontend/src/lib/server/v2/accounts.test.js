@@ -80,3 +80,25 @@ describe('account rollups', () => {
     expect(results.map((r) => r.id)).toEqual(['eur-small', 'usd-big', 'usd-small', 'none']);
   });
 });
+
+describe('optional customer billing strings', () => {
+  beforeEach(() => apiRequest.mockReset());
+  it.each(['create', 'update'])(
+    'keeps blank billing strings during %s without changing nullable legacy fields',
+    async (operation) => {
+      const { CUSTOMER_BILLING_FIELDS } = await import('$lib/v2/billing.js');
+      const { createAccount, updateAccount } = await import('./accounts.js');
+      apiRequest.mockResolvedValue({ id: 'buyer' });
+      const values = {
+        name: 'Buyer',
+        phone: '',
+        ...Object.fromEntries(CUSTOMER_BILLING_FIELDS.map((field) => [field, '']))
+      };
+      if (operation === 'create') await createAccount(event, values);
+      else await updateAccount(event, 'buyer', values);
+      const body = apiRequest.mock.lastCall[1].body;
+      for (const field of CUSTOMER_BILLING_FIELDS) expect(body[field]).toBe('');
+      expect(body.phone).toBeNull();
+    }
+  );
+});

@@ -1,3 +1,4 @@
+import { CUSTOMER_BILLING_FIELDS } from '$lib/v2/billing.js';
 /**
  * Accounts: the third v2 module wired to the real API.
  *
@@ -332,6 +333,7 @@ function profileName(profile) {
 
 /** Scalar fields the account forms own. Everything else is server-derived. */
 export const EDITABLE_FIELDS = [
+  ...CUSTOMER_BILLING_FIELDS,
   'name',
   'industry',
   'website',
@@ -402,6 +404,7 @@ export async function getAccountForEdit({ cookies }, id) {
     account,
     ...choices,
     form: {
+      ...Object.fromEntries(CUSTOMER_BILLING_FIELDS.map((key) => [key, raw[key] ?? ''])),
       name: account.name,
       industry: account.industry_value,
       website: account.website,
@@ -444,7 +447,7 @@ function toBody(values) {
   for (const field of EDITABLE_FIELDS) {
     if (!(field in values)) continue;
     const value = values[field];
-    body[field] = value === '' ? null : value;
+    body[field] = value === '' && !CUSTOMER_BILLING_FIELDS.includes(field) ? null : value;
   }
   if ('number_of_employees' in body && body.number_of_employees !== null) {
     body.number_of_employees = Number(body.number_of_employees);

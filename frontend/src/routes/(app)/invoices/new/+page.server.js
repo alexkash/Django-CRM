@@ -1,3 +1,4 @@
+import { billingOptions } from '$lib/server/v2/billing-options.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { listAccounts } from '$lib/server/v2/accounts.js';
 import { listContacts } from '$lib/server/v2/contacts.js';
@@ -14,7 +15,9 @@ import { readableError } from '$lib/server/v2/form-errors.js';
  *
  * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies }) {
+export async function load({ cookies, url }) {
+  if (url.searchParams.get('format') === 'ua')
+    return { ua: true, ...(await billingOptions({ cookies })) };
   const [accounts, contacts, products] = await Promise.all([
     listAccounts({ cookies }, new URLSearchParams({ limit: '1000' })),
     listContacts({ cookies }, new URLSearchParams({ limit: '1000' })),
@@ -63,6 +66,7 @@ export const actions = {
       created = await createInvoice({ cookies }, body);
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
+        values: body,
         error: readableError(err, 'Could not create the invoice.')
       });
     }

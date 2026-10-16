@@ -1,7 +1,5 @@
 # Ukrainian invoices and service acts
 
-> The billing API and PDF lifecycle are available in this backend PR. The web settings and editors described below arrive in its dependent UI PR.
-
 A single CRM organization can issue documents from several of its own legal entities: ФОП or ТОВ, with or without VAT. These issuing companies share the CRM's customer and product catalog. Choose the company on each invoice; products are not automatically assigned to a company.
 
 ## Set up the parties
@@ -9,6 +7,8 @@ A single CRM organization can issue documents from several of its own legal enti
 Open **Settings → Наші компанії**. An organization administrator adds the legal name, registration code, address, tax status, signer and bank accounts. Enter an IBAN with its checksum, the bank name and optional МФО. A company may have several bank accounts. Archive unused companies or bank accounts rather than removing records used by documents.
 
 The optional signature and stamp are raster images for printing. Upload PNG or JPEG, up to 2 MiB and 16 megapixels; transparent PNG is useful for a clean background. The application decodes and normalizes the image, rejects animation, and applies the size limit to the normalized PNG too. Original scan access is administrator-only. These images do not implement electronic signing.
+
+The production frontend image sets `BODY_SIZE_LIMIT=3M` so a 2 MiB scan and multipart framing can reach the API. When running the adapter-node build directly, set this environment variable to at least `3M`; its upstream default of 512 KiB is too small. Operators can raise the transport limit for other attachments; the billing API still enforces the 2 MiB scan limit.
 
 On the customer's account, enter **Юридичні реквізити для документів**: full name, code, address, bank details and representative. Existing customer records remain valid without these fields; the required document particulars are checked when issuing. You can override customer or payer particulars in a draft for that document.
 
