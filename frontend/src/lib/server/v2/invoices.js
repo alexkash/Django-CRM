@@ -40,6 +40,7 @@ import { pageQuery, pageState } from '$lib/v2/pagination.js';
  * list did not wire the board.
  */
 import { error } from '@sveltejs/kit';
+import { billingInvoice, uaInvoicePayload } from '$lib/v2/billing.js';
 import { apiRequest } from '$lib/api-helpers.js';
 
 /** `invoices.models.INVOICE_STATUS`. Underscore on the wire; never shown raw. */
@@ -88,6 +89,10 @@ const num = (/** @type {any} */ value) => {
 function toRow(row) {
   return {
     id: row.id,
+    issuer: row.issuer ?? null,
+    issuer_name: row.issuer_name ?? '',
+    closure: row.closure ?? null,
+    issued_at: row.issued_at ?? null,
     invoice_number: row.invoice_number ?? '',
     invoice_title: row.invoice_title ?? '',
     status: row.status,
@@ -250,6 +255,7 @@ export async function getInvoice({ cookies }, id) {
   const invoice = response.invoice ?? {};
   return {
     invoice: toDetail(invoice),
+    billing: invoice.issuer ? billingInvoice(invoice) : null,
     lineItems: (invoice.line_items ?? []).map(toLineItem)
   };
 }
@@ -303,7 +309,11 @@ export async function duplicateInvoice({ cookies }, id) {
  * @param {Record<string, any>} body
  */
 export async function createInvoice({ cookies }, body) {
-  const response = await apiRequest('/invoices/', { method: 'POST', body }, { cookies });
+  const response = await apiRequest(
+    '/invoices/',
+    { method: 'POST', body: body.issuer_id ? uaInvoicePayload(body) : body },
+    { cookies }
+  );
   return response.invoice ?? response;
 }
 
@@ -323,4 +333,11 @@ export async function invoiceFromDeal({ cookies }, dealId) {
     { cookies }
   );
   return response.invoice ?? response;
+}
+
+export function issueInvoice(event, id) {
+  return apiRequest(`/invoices/${id}/issue/`, { method: 'POST', body: {} }, event);
+}
+export function updateInvoice(event, id, body) {
+  return apiRequest(`/invoices/${id}/`, { method: 'PUT', body: uaInvoicePayload(body) }, event);
 }

@@ -1,4 +1,5 @@
 <script>
+  import CustomerBillingFields from '$lib/v2/components/billing/CustomerBillingFields.svelte';
   import { resolve } from '$app/paths';
   /**
    * Editing an account.
@@ -342,6 +343,11 @@
       <button class="v2-btn v2-btn-primary" type="submit">Save changes</button>
       <a class="v2-btn" href={resolve(`/accounts/${account.id}`)}>Cancel</a>
     </div>
+
+    <section class="billing" style="margin-top:20px">
+      <h2>Юридичні реквізити для документів</h2>
+      <CustomerBillingFields bind:values={form} />
+    </section>
   </form>
 </div>
 

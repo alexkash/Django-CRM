@@ -1,5 +1,9 @@
 # Ukrainian Billing Implementation Plan
 
+> Исторический документ проектирования/планирования. После его подготовки пользователь отдельно поручил реализацию и создание четырёх последовательных PR с ревью Codex. Фактический результат и проверки описаны в отчёте реализации.
+
+> **Статус исполнения, 2026-10-15:** пользователь отдельно поручил создать worktree и реализовать план. T1–T7 выполнены inline; результаты, исправления ревью и baseline-ограничения — в [отчёте реализации](2026-10-15-ukrainian-billing-implementation.md). Текст исходных checklists ниже сохранён как история плана.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Execution method is not selected; this request authorizes planning and plan audit only. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** В одной CRM вручную выпускать украинские счета и частичные акты от нескольких ФОП/ТОВ с отдельным ПДВ и печатными сканами подписи/печати.
@@ -103,7 +107,7 @@
 
 ## 3. Задачи и зависимости
 
-### T1. Справочники, схема и защита новых данных
+### Task 1: Справочники, схема и защита новых данных
 
 **Depends:** нет. **Результат:** схема и API компаний/банков/реквизитов клиента/сканов, с реальной изоляцией.
 
@@ -117,7 +121,7 @@
 - [ ] Реализовать schema, RLS миграцию после CreateModel, constraints (q>0, nonnegative amounts, unique sequences, `(act,source_line)`), орг-индексы и serializers read-only server fields. При schema вводить UA только nullable/additive; не backfill issuer/юридические данные по догадке. Scan fields и PDF fields не включать в общий ModelSerializer `__all__`.
 - [ ] GREEN: тот же pytest; `DJANGO_SETTINGS_MODULE=crm.test_settings uv run python manage.py makemigrations --check --dry-run`; `DJANGO_SETTINGS_MODULE=crm.test_settings uv run python manage.py migrate --plan`. MigrationExecutor test миграции с предыдущего state на синтетических generic документах и назад, без реальных БД.
 
-### T2. UA-черновики, расчёт и нумерация
+### Task 2: UA-черновики, расчёт и нумерация
 
 **Depends:** T1. **Результат:** создание/редактирование корректного UA черновика через существующий invoices API, без изменения generic расчёта.
 
@@ -131,7 +135,7 @@
 - [ ] Реализовать create/update UA и opt-in ветку пересчёта. Применить conditional constraints номеров и исключение issuer rows из старого Invoice allocator. Реализовать default defer и explicit binary loaders; проверить ordinary list/detail/CSV/related queries на отсутствие archive/scan колонок. Изменение prefix после первого соответствующего выпуска отвергается; schema migration из T1 при необходимости дополняется следующей миграцией, не переписывается после применения.
 - [ ] GREEN: те же файлы + `uv run pytest --no-cov invoices/tests/test_document_numbers.py invoices/tests/test_line_discount_totals.py invoices/tests/test_tax_and_shipping_bounds.py -q`.
 
-### T3. Выпуск счёта и две неизменяемые печатные формы
+### Task 3: Выпуск счёта и две неизменяемые печатные формы
 
 **Depends:** T2. **Результат:** выпустить и распечатать счёт без отправки; PDF не изменится после правок справочников.
 
@@ -145,7 +149,7 @@
 - [ ] Реализовать atomic issue и bounds PNG/PDF, экранирование, закрытый resource fetcher, licensed packaged font. Для binary PDF не выдавать URL хранения; ответы private/no-store; snapshot/pdf/hashes server-only. Preview не должен раскрывать raw scans через другие endpoints.
 - [ ] GREEN: те же tests + `test_custom_template_escaping.py`, `test_template_editor.py`, `test_admin_issued_lock.py`, `test_issued_documents_locked.py`, `test_issued_totals_frozen.py` в `invoices/tests/`. Render реальным WeasyPrint, не mock всей цепочки.
 
-### T4. Частичные акты и остатки по позициям
+### Task 4: Частичные акты и остатки по позициям
 
 **Depends:** T3. **Результат:** ручной частичный акт с собственной нумерацией/PDF; безопасное повторное закрытие после отмены.
 
@@ -160,7 +164,7 @@
 - [ ] Реализовать draft/edit/issue/cancel/delete-draft и API, aggregate only Issued, lock order и безопасную выдачу архивов. Не создавать Payment при выпуске акта. Schema serializer поля Act.issuer объявить read-only и выводить из Invoice.
 - [ ] GREEN: тот же pytest. PostgreSQL race тесты из test_ua_act_races.py исполняются T7 как `postgres_only`, SQLite skip не считается доказательством гонки.
 
-### T5. Настройки компаний и рабочий UI документов
+### Task 5: Настройки компаний и рабочий UI документов
 
 **Depends:** T4. **Результат:** пользователь проходит весь ручной сценарий в существующем веб-интерфейсе.
 
@@ -176,7 +180,7 @@
 - [ ] Добавить список актов и связь из invoice/account; paid/closed/remaining отдельными величинами, не суммировать валюты generic invoice в общий гривневый итог. UA draft может сохраняться без нового периода; перед выпуском требуется выбрать и проверить период. У редактируемого UA draft есть Edit, у выпущенного нет. Для повторного счёта кнопка duplicate открывает новый draft с новым периодом и без старых оплат/актов/архивов.
 - [ ] GREEN JS те же tests; `pnpm check`; затем настоящая browser QA по T7. Маршрут settings/+page.svelte проверен и существует; добавить ссылку на новые настройки, сохранив текущие ссылки.
 
-### T6. Все существующие пути Invoice и совместимость
+### Task 6: Все существующие пути Invoice и совместимость
 
 **Depends:** T5 (backend service может проверяться после T4, финальный сценарий — после UI). **Результат:** ни один существующий путь не обходит новые правила и не меняет старую семантику.
 
@@ -189,7 +193,7 @@
 - [ ] RED: UA nested/standalone lines/admin не обходят freeze; публичный Serializer не выдаёт snapshot/archive/scans; email архива чистый; изменение компании или деактивация не изменяет старые PDF, но запрещает новый счёт от архивной компании.
 - [ ] Run RED/GREEN: `cd backend && uv run pytest --no-cov invoices/tests/test_ua_existing_paths.py invoices/tests/ accounts/tests/ -q`; frontend `pnpm exec vitest run src/lib/server/v2/invoices.test.js src/lib/server/v2/accounts.test.js`. Для mobile при изменении wire-parser выполнить его существующие тесты; новая функциональность UI туда не добавляется.
 
-### T7. Реальная PostgreSQL-проверка, печать и приёмка
+### Task 7: Реальная PostgreSQL-проверка, печать и приёмка
 
 **Depends:** T6. **Результат:** доказательства A1–A9, готовая документация и отчёт об ограничениях, без deployment.
 

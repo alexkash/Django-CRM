@@ -43,8 +43,8 @@ import { viewerIsAdmin } from './organization.js';
  * that could 400 on an unknown code. Kept in this order (org default first).
  */
 export const CURRENCY_CHOICES = [
-  { code: 'USD', label: 'USD, Dollar' },
   { code: 'UAH', label: 'UAH, Hryvnia' },
+  { code: 'USD', label: 'USD, Dollar' },
   { code: 'EUR', label: 'EUR, Euro' },
   { code: 'GBP', label: 'GBP, Pound' },
   { code: 'INR', label: 'INR, Rupee' },
@@ -75,6 +75,7 @@ function toProduct(p) {
     id: p.id,
     name: p.name ?? '',
     sku: p.sku ?? '',
+    unit: p.unit ?? '',
     description: p.description ?? '',
     price: Number(p.price) || 0,
     currency: p.currency ?? null,

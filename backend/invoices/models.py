@@ -14,6 +14,25 @@ from common.base import AssignableMixin, BaseModel
 from common.models import Org, Profile, Teams
 from common.utils import COUNTRIES, CURRENCY_CODES
 from contacts.models import Contact
+from invoices.billing.models import (
+    ArchivedDocument,
+    BillingManager,
+)
+from invoices.billing.models import (
+    DocumentSequence as DocumentSequence,
+)  # noqa: F401
+from invoices.billing.models import (
+    LegalEntity as LegalEntity,
+)
+from invoices.billing.models import (
+    LegalEntityBankAccount as LegalEntityBankAccount,
+)
+from invoices.billing.models import (
+    ServiceAct as ServiceAct,
+)
+from invoices.billing.models import (
+    ServiceActLine as ServiceActLine,
+)
 from opportunity.models import Opportunity
 
 # =============================================================================
@@ -240,6 +259,8 @@ class InvoiceTemplate(BaseModel):
 class Product(BaseModel):
     """Product Catalog for Line Items"""
 
+    unit = models.CharField(max_length=30, blank=True)
+
     name = models.CharField(_("Product Name"), max_length=255)
     description = models.TextField(_("Description"), blank=True, null=True)
     sku = models.CharField(_("SKU"), max_length=100, blank=True, null=True)
@@ -281,11 +302,12 @@ def _next_number(model, field, prefix, org_id):
                 "SELECT pg_advisory_xact_lock(hashtext(%s))",
                 [f"{model._meta.db_table}:{org_id}"],
             )
-    result = (
-        model.objects.filter(org_id=org_id, **{f"{field}__startswith": prefix})
-        .annotate(seq_num=Cast(Substr(field, len(prefix) + 1), IntegerField()))
-        .aggregate(max_seq=Max("seq_num"))
-    )
+    rows = model.objects.filter(org_id=org_id, **{f"{field}__startswith": prefix})
+    if model._meta.model_name == "invoice":
+        rows = rows.filter(issuer__isnull=True)
+    result = rows.annotate(
+        seq_num=Cast(Substr(field, len(prefix) + 1), IntegerField())
+    ).aggregate(max_seq=Max("seq_num"))
     return f"{prefix}{(result['max_seq'] or 0) + 1:04d}"
 
 
@@ -294,7 +316,7 @@ def _next_number(model, field, prefix, org_id):
 # =============================================================================
 
 
-class Invoice(AssignableMixin, BaseModel):
+class Invoice(AssignableMixin, ArchivedDocument, BaseModel):
     """
     Invoice model with full CRM integration.
 
@@ -303,6 +325,37 @@ class Invoice(AssignableMixin, BaseModel):
     - contact: MANDATORY (via serializer) - The "Bill To" contact
     - opportunity: Optional but recommended for ROI/commission tracking
     """
+
+    objects = BillingManager()
+    issuer = models.ForeignKey(
+        "invoices.LegalEntity",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="invoices",
+    )
+    bank_account = models.ForeignKey(
+        "invoices.LegalEntityBankAccount",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="invoices",
+    )
+    payer = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="payer_invoices",
+    )
+    contract_number = models.CharField(max_length=100, blank=True)
+    contract_date = models.DateField(null=True, blank=True)
+    order_reference = models.CharField(max_length=255, blank=True)
+    service_period_start = models.DateField(null=True, blank=True)
+    service_period_end = models.DateField(null=True, blank=True)
+    place_of_issue = models.CharField(max_length=100, blank=True)
+    vat_status = models.CharField(max_length=12, blank=True)
+    draft_parties = models.JSONField(default=dict, blank=True)
 
     # Core Invoice Info
     invoice_title = models.CharField(_("Invoice Title"), max_length=100)
@@ -490,6 +543,7 @@ class Invoice(AssignableMixin, BaseModel):
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
         db_table = "invoice"
+        base_manager_name = "objects"
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["org", "-created_at"]),
@@ -501,7 +555,13 @@ class Invoice(AssignableMixin, BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["org", "invoice_number"],
+                condition=models.Q(issuer__isnull=True),
                 name="unique_invoice_number_per_org",
+            ),
+            models.UniqueConstraint(
+                fields=["org", "issuer", "invoice_number"],
+                condition=models.Q(issuer__isnull=False),
+                name="unique_ua_invoice_number",
             ),
         ]
 
@@ -514,7 +574,11 @@ class Invoice(AssignableMixin, BaseModel):
         with transaction.atomic():
             # Generate invoice number if not set
             if not self.invoice_number:
-                self.invoice_number = self.generate_invoice_number()
+                self.invoice_number = (
+                    f"DRAFT-{self.pk}"
+                    if self.issuer_id
+                    else self.generate_invoice_number()
+                )
 
             # Generate public token if not set (with collision check)
             if not self.public_token:
@@ -569,7 +633,37 @@ class Invoice(AssignableMixin, BaseModel):
         The subtotal is the sum of each line's ``net_amount`` (after the line's
         own discount); see ``LineAmounts``.
         """
-        line_items = self.line_items.all() if self.pk else []
+        line_items = list(self.line_items.all()) if self.pk else []
+        if self.issuer_id:
+            from invoices.billing.money import LineInput, calculate_ua_totals
+
+            values = calculate_ua_totals(
+                [LineInput(item.quantity, item.unit_price) for item in line_items],
+                self.vat_status or self.issuer.vat_status,
+                Decimal(str(self.tax_rate)),
+            )
+            self.subtotal, self.tax_amount, self.total_amount = (
+                values.subtotal,
+                values.tax_amount,
+                values.total_amount,
+            )
+            self.discount_amount = Decimal(0)
+            for item, amount in zip(line_items, values.lines):
+                InvoiceLineItem.objects.filter(pk=item.pk, org_id=self.org_id).update(
+                    tax_rate=self.tax_rate,
+                    subtotal=amount.net,
+                    tax_amount=amount.vat,
+                    total=amount.gross,
+                    discount_amount=0,
+                )
+                item.tax_rate, item.subtotal, item.tax_amount, item.total = (
+                    self.tax_rate,
+                    amount.net,
+                    amount.vat,
+                    amount.gross,
+                )
+            self.amount_due = self.total_amount - self.amount_paid
+            return
         self.subtotal = sum((item.net_amount for item in line_items), Decimal("0"))
 
         # Calculate discount, never more than the subtotal: the serializers
@@ -600,7 +694,7 @@ class Invoice(AssignableMixin, BaseModel):
         return f"{currency} {self.amount_due}"
 
     @property
-    def is_overdue(self):
+    def is_overdue(self) -> bool:
         if self.due_date and self.status not in ["Paid", "Cancelled"]:
             return timezone.localdate() > self.due_date
         return False
@@ -641,6 +735,8 @@ class InvoiceLineItem(LineAmounts, BaseModel):
     unit_price = models.DecimalField(
         _("Unit Price"), max_digits=12, decimal_places=2, default=0
     )
+
+    unit = models.CharField(max_length=30, blank=True)
 
     # Per-item discount
     discount_type = models.CharField(
@@ -762,6 +858,26 @@ class Payment(BaseModel):
         if not self.org_id and self.invoice_id:
             self.org_id = self.invoice.org_id
 
+        if self.invoice_id and self.invoice.issuer_id:
+            with transaction.atomic():
+                invoice = Invoice.objects.select_for_update().get(pk=self.invoice_id)
+                if (
+                    not invoice.issued_at
+                    or invoice.status == "Cancelled"
+                    or self.org_id != invoice.org_id
+                ):
+                    raise ValidationError(
+                        "Для оплати потрібен виписаний рахунок цієї організації."
+                    )
+                available = invoice.amount_due
+                if not self._state.adding:
+                    available += Payment.objects.get(pk=self.pk).amount
+                amount = Decimal(str(self.amount))
+                if not amount.is_finite() or amount <= 0 or amount > available:
+                    raise ValidationError("Некоректна сума оплати.")
+                super().save(*args, **kwargs)
+                self.update_invoice_payment(invoice)
+            return
         super().save(*args, **kwargs)
 
         # Update invoice payment totals
@@ -814,7 +930,13 @@ class Payment(BaseModel):
                 # A deleted payment left no payments: back to the unpaid state.
                 # An invoice that was never sent goes back to Draft.
                 invoice.status = (
-                    "Draft"
+                    (
+                        "Overdue"
+                        if invoice.due_date and invoice.due_date < timezone.localdate()
+                        else "Sent"
+                    )
+                    if invoice.issuer_id and invoice.issued_at
+                    else "Draft"
                     if not invoice.sent_at
                     else "Overdue"
                     if invoice.due_date and invoice.due_date < timezone.localdate()

@@ -23,3 +23,27 @@ describe('CURRENCY_CHOICES', () => {
     expect(CURRENCY_SYMBOLS.ZAR).toBe('R');
   });
 });
+
+it('offers hryvnia in existing currency pickers and keeps it in product writes', async () => {
+  const { createProduct } = await import('$lib/server/v2/products.js');
+  expect(CURRENCY_CHOICES).toContainEqual({ code: 'UAH', label: 'UAH, Hryvnia' });
+  expect(CURRENCY_CODES).toContainEqual({ value: 'UAH', label: 'UAH - Hryvnia' });
+  expect(CURRENCY_SYMBOLS.UAH).toBe('₴');
+  const { apiRequest } = await import('$lib/api-helpers.js');
+  const cookies = {
+    get: vi.fn(),
+    getAll: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    serialize: vi.fn()
+  };
+  await createProduct(
+    { cookies },
+    { name: 'Service', price: '1000', currency: 'UAH', is_active: true }
+  );
+  expect(apiRequest).toHaveBeenLastCalledWith(
+    '/invoices/products/',
+    expect.objectContaining({ body: expect.objectContaining({ currency: 'UAH' }) }),
+    { cookies }
+  );
+});

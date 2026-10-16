@@ -96,6 +96,7 @@ EXPECTED_RELATIONS = {
         "tasks.BoardTask.account",
         "tasks.Task.account",
         "invoices.Invoice.account",
+        "invoices.Invoice.payer",  # Redirect the live FK; issued printed parties/PDF stay frozen.
         "invoices.Estimate.account",
         "invoices.RecurringInvoice.account",
         "orders.Order.account",

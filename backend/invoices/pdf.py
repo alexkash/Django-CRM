@@ -463,7 +463,7 @@ def format_currency(amount, currency="USD"):
     return f"{symbol}{amount:,.2f}"
 
 
-def generate_invoice_pdf(invoice, include_payments=True):
+def generate_invoice_pdf(invoice, include_payments=True, variant="clean"):
     """
     Generate a PDF for an invoice.
 
@@ -474,6 +474,11 @@ def generate_invoice_pdf(invoice, include_payments=True):
     Returns:
         bytes: PDF file content
     """
+    if invoice.issuer_id:
+        from invoices.billing.pdf import document_pdf
+
+        return document_pdf(invoice, variant=variant)
+
     check_weasyprint()
 
     # Get the template - use invoice's template, or fall back to org's default template

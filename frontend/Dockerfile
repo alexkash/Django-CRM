@@ -16,6 +16,8 @@
 #   ORIGIN                 required in production. See below.
 #   PUBLIC_SENTRY_DSN      optional. Unset disables Sentry (`enabled: !!dsn`).
 #   PORT                   defaults to 3000. HOST already defaults to 0.0.0.0.
+#   BODY_SIZE_LIMIT        defaults to 3M, allowing a 2 MiB billing scan plus
+#                          multipart framing. Override for larger attachments.
 #
 # ORIGIN is the one that fails quietly. adapter-node compares the Origin header
 # of every form POST against it, and with no ORIGIN set a proxied request is
@@ -65,6 +67,7 @@ RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 FROM node:24-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+ENV BODY_SIZE_LIMIT=3M
 
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/build ./build
