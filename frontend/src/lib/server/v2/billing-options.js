@@ -17,6 +17,7 @@ export async function billingOptions(event) {
     contacts: contacts.results.map((row) => ({
       id: row.id,
       name: row.name || row.email,
+      email: row.email ?? '',
       account_id: row.account?.id ?? null
     })),
     products: products.results.filter((row) => row.is_active && row.currency === 'UAH')

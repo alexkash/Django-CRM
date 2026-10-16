@@ -109,3 +109,13 @@ it('sends an explicit null to recalculate a cleared due date on draft update', a
   const body = uaInvoicePayload({ issue_date: '2027-02-01', due_date: '' });
   expect(body).toHaveProperty('due_date', null);
 });
+
+it('carries the chosen email into UA writes and sent state into the detail view', async () => {
+  const { uaInvoicePayload, billingInvoice } = await import('$lib/v2/billing.js');
+  expect(uaInvoicePayload({ client_email: 'customer@example.test' }).client_email).toBe(
+    'customer@example.test'
+  );
+  expect(
+    billingInvoice({ client_email: 'customer@example.test', sent_at: '2027-01-01T00:00:00Z' })
+  ).toMatchObject({ client_email: 'customer@example.test', sent_at: '2027-01-01T00:00:00Z' });
+});

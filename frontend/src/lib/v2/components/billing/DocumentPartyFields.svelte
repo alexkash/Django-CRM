@@ -1,12 +1,13 @@
 <script>
-  /** @type {{values:any,entities:any[],banks:any[],accounts:any[],contacts:any[],onissuerchange?:(id:string)=>void}} */
+  /** @type {{values:any,entities:any[],banks:any[],accounts:any[],contacts:any[],onissuerchange?:(id:string)=>void,oncontactchange?:(id:string)=>void}} */
   let {
     values = $bindable({}),
     entities = [],
     banks = [],
     accounts = [],
     contacts = [],
-    onissuerchange = () => {}
+    onissuerchange = () => {},
+    oncontactchange = () => {}
   } = $props();
   let contactOptions = $derived(
     contacts.filter((c) => !c.account_id || c.account_id === values.account_id)
@@ -47,7 +48,10 @@
     ></label
   >
   <label
-    ><span>Контакт клієнта</span><select bind:value={values.contact_id} required
+    ><span>Контакт клієнта</span><select
+      bind:value={values.contact_id}
+      required
+      onchange={(event) => oncontactchange(event.currentTarget.value)}
       ><option value="">Оберіть контакт</option>{#each contactOptions as contact}<option
           value={contact.id}>{contact.name}</option
         >{/each}</select

@@ -39,6 +39,17 @@
       <form method="POST" action="?/issue" use:enhance={submit}>
         <button class="v2-btn v2-btn-primary" disabled={busy}>Виписати рахунок</button>
       </form>{/if}
+    {#if invoice.issued_at && !['Paid', 'Cancelled'].includes(invoice.status)}
+      <form method="POST" action="?/send" use:enhance={submit}>
+        <button
+          class="v2-btn v2-btn-primary"
+          disabled={busy || !invoice.client_email}
+          title={invoice.client_email || 'Email одержувача не вказано'}
+        >
+          {invoice.sent_at ? 'Надіслати повторно' : 'Надіслати клієнту'}
+        </button>
+      </form>
+    {/if}
     <form method="POST" action="?/duplicate" use:enhance={submit}>
       <button class="v2-btn" disabled={busy}>Створити на основі</button>
     </form>
@@ -46,7 +57,11 @@
 >
 <div class="v2-scroll v2-pad">
   <div class="billing">
-    {#if form?.error}<div class="b-error" role="alert">{form.error}</div>{/if}
+    {#if form?.error}<div class="b-error" role="alert">{form.error}</div>{:else if form?.sent}<p
+        role="status"
+      >
+        Запит на надсилання прийнято.
+      </p>{/if}
     <section>
       <div class="b-stats">
         <div>

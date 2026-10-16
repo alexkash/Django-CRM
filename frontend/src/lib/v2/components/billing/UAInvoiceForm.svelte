@@ -20,6 +20,7 @@
         bank_account_id: '',
         account_id: '',
         contact_id: '',
+        client_email: '',
         payer_id: '',
         issue_date: todayIn(data.org?.timezone ?? 'UTC'),
         payment_terms: 'NET_30',
@@ -72,6 +73,9 @@
     values.tax_rate = String(selected?.default_vat_rate ?? '0');
     values.place_of_issue = selected?.city ?? '';
   }
+  function selectContact(id) {
+    values.client_email = data.contacts.find((row) => row.id === id)?.email ?? '';
+  }
   function addProduct() {
     const product = data.products.find((row) => row.id === selectedProduct);
     if (product) values.line_items = addCatalogLine(values.line_items, product);
@@ -113,7 +117,14 @@
           accounts={data.accounts}
           contacts={data.contacts}
           onissuerchange={selectIssuer}
+          oncontactchange={selectContact}
         />
+        <label style="margin-top:15px"
+          ><span>Email для надсилання (необов’язково)</span><input
+            type="email"
+            bind:value={values.client_email}
+          /></label
+        >
         <details>
           <summary>Уточнити реквізити одержувача для цього документа</summary>
           <p class="b-muted">Порожні поля використовують реквізити з картки клієнта.</p>
