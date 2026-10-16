@@ -139,7 +139,7 @@ class ServiceActSerializer(serializers.ModelSerializer):
     )
     issuer_name = serializers.SerializerMethodField()
 
-    def get_issuer_name(self, obj):
+    def get_issuer_name(self, obj) -> str:
         return obj.invoice.print_snapshot.get("seller", {}).get("legal_name", "")
 
     lines = ServiceActLineSerializer(many=True, read_only=True)

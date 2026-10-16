@@ -33,6 +33,12 @@ from common.serializer import (
 from common.utils import create_attachment
 from common.validators import date_param, payload_id_list, uuid_param, validate_uuid
 from contacts.access import visible_contacts_qs
+from invoices.api_schema import (
+    InvoiceCreateRequestSerializer,
+    InvoiceDetailResponseSerializer,
+    InvoiceListResponseSerializer,
+    InvoiceMutationResponseSerializer,
+)
 from invoices.models import (
     UNPAID_STATUSES,
     Estimate,
@@ -176,7 +182,11 @@ class InvoiceListView(APIView, LimitOffsetPagination):
             .prefetch_related("line_items", "payments", "assigned_to")
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_list")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_list",
+        responses={200: InvoiceListResponseSerializer},
+    )
     def get(self, request, *args, **kwargs):
         base = self.get_queryset()
         queryset = filter_invoices(base, request.query_params)
@@ -249,7 +259,12 @@ class InvoiceListView(APIView, LimitOffsetPagination):
             counts=("count", "action_needed"),
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_create")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_create",
+        request=InvoiceCreateRequestSerializer,
+        responses={201: InvoiceMutationResponseSerializer},
+    )
     def post(self, request, *args, **kwargs):
         cf_payload = request.data.get("custom_fields")
         if isinstance(cf_payload, str):
@@ -316,7 +331,11 @@ class InvoiceDetailView(APIView):
     def get_object(self, pk):
         return self.model.objects.filter(id=pk, org=self.request.profile.org).first()
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_retrieve")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_retrieve",
+        responses={200: InvoiceDetailResponseSerializer},
+    )
     def get(self, request, pk, format=None):
         invoice, error = get_invoice_or_error(request, pk)
         if error:
@@ -355,7 +374,12 @@ class InvoiceDetailView(APIView):
             }
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_update")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_update",
+        request=InvoiceCreateSerializer(partial=True),
+        responses={200: InvoiceMutationResponseSerializer},
+    )
     def put(self, request, pk, format=None):
         with transaction.atomic():
             response, invoice = self._update(request, pk)
