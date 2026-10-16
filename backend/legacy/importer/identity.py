@@ -8,6 +8,25 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 SOURCE_KEY = "suitecrm-coloris"
 
+# These optional fields did not exist when the deployed SuiteCRM fingerprints
+# were recorded. Empty defaults must not turn unchanged records into conflicts.
+# Nonempty values remain in the fingerprint, so billing edits are still protected.
+BILLING_EMPTY_ADDITIONS = {
+    "accounts.Account": {
+        "legal_name",
+        "registration_code",
+        "vat_registration_number",
+        "legal_address",
+        "iban",
+        "bank_name",
+        "mfo",
+        "tax_system_text",
+        "signer_name",
+        "signer_title",
+    },
+    "invoices.Product": {"unit"},
+}
+
 
 def stable_id(table, source_id, role="native"):
     value = json.dumps(
@@ -38,6 +57,11 @@ def object_fingerprint(obj):
         {"password", "last_login", "activation_key", "key_expires"}
         if obj._meta.label == "common.User"
         else set()
+    )
+    volatile.update(
+        name
+        for name in BILLING_EMPTY_ADDITIONS.get(obj._meta.label, ())
+        if getattr(obj, name, None) == ""
     )
     data = {
         f.attname: getattr(obj, f.attname)
