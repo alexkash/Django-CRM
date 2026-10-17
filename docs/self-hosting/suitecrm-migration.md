@@ -48,6 +48,8 @@ The backup script includes the database, ordinary media, private migrated files,
 
 The `SuiteCRM history` navigation provides module/type/date/search/deleted filters and a private file index. Native account/contact/lead/deal/task cards link their history. Invoices link to the historical list; these amounts do not enter live totals. Unknown stages ask for classification and do not automatically become open/won/lost.
 
+Imported map fields (`jjwg_maps_address_c`, `jjwg_maps_geocode_status_c`, `jjwg_maps_lat_c`, `jjwg_maps_lng_c`) and tracking fields (`utm_source_c`, `utm_medium_c`, `utm_campaign_c`, `utm_content_c`, `utm_term_c`) are hidden from custom-field lists, totals, record forms and the raw-field tables in history. Their definitions and stored values remain intact for validation, import reconciliation and recovery. Other imported fields, including product sales flags and the `suitecrm_original_*` fields, remain visible.
+
 FORCE RLS applies to every history table. Members additionally need their native entity read permission and every business-parent permission. Missing/deleted/unknown parents and unlinked files fail closed. Followup tasks cannot grant access to an otherwise unparented historical event. HTML is plain/escaped text: no scripts, frames, forms or tracking images run.
 
 Existing owner login remains valid. SuiteCRM passwords, sessions and OAuth credentials are not activated. SMTP/Google are not configured by this migration; the existing private file mail backend remains in place. The owner can generate a test login through the existing SSH `deploy/login-link` helper. Do not publish login links or tokens.

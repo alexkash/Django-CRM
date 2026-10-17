@@ -201,6 +201,10 @@ clients debounce well under that.
 Matching: email, case-insensitive; first and last name together. Phone numbers match on their last ten digits (or every digit of a shorter number,
 seven at least), whatever the separators.
 
+Blank or invalid email addresses, no-reply/no-email mailboxes, reserved example/test
+email domains and obvious dummy phones are ignored in both searches and `matched_on`.
+The [shared placeholder rules](accounts.md#duplicates-and-merging) apply without changing stored data.
+
 `POST /api/contacts/{id}/merge/` with `{"merge_id": "<uuid>"}` merges the contact named in the body into the
 one in the URL. The caller must be able to open both (either one hidden or missing is the same `404`),
 must be allowed to edit the one kept (for contacts, anyone who can open it), and must hold the delete rule on the one merged away
