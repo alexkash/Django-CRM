@@ -123,3 +123,57 @@ describe('hooks.server.js relays the visitor', () => {
     });
   });
 });
+
+describe('restoring a session after the access cookie expires', () => {
+  it('restores the user and org from the refresh cookie on a protected route', async () => {
+    const access = jwt({ user_id: 'returning-user', org_id: ORG, exp: hourFromNow() });
+    vi.mocked(axios.post).mockResolvedValue({ data: { access, refresh: 'rotated' } });
+    const returning = event({ jwt_refresh: 'still-valid', org: ORG });
+    returning.url = new URL('http://app.test/leads');
+
+    await handle({ event: returning, resolve });
+
+    expect(returning.locals.user.id).toBe('returning-user');
+    expect(returning.locals.org.id).toBe(ORG);
+    expect(returning.cookies.set).toHaveBeenCalledWith(
+      'jwt_refresh',
+      'rotated',
+      expect.objectContaining({ maxAge: 2592000, httpOnly: true, sameSite: 'lax' })
+    );
+    expect(returning.cookies.set).toHaveBeenCalledWith('jwt_access', access, expect.any(Object));
+  });
+
+  it('clears an expired or revoked refresh cookie and requires sign-in', async () => {
+    vi.mocked(axios.post).mockRejectedValue({ response: { status: 401 } });
+    const returning = event({ jwt_refresh: 'revoked', org: ORG });
+    returning.url = new URL('http://app.test/leads');
+
+    await expect(handle({ event: returning, resolve })).rejects.toMatchObject({
+      status: 307,
+      location: '/login'
+    });
+
+    expect(returning.locals.user).toBeUndefined();
+    for (const name of ['jwt_access', 'jwt_refresh', 'org']) {
+      expect(returning.cookies.delete).toHaveBeenCalledWith(name, { path: '/' });
+    }
+  });
+
+  it('shares one rotation between concurrent requests without access cookies', async () => {
+    const access = jwt({ user_id: 'returning-user', exp: hourFromNow() });
+    vi.mocked(axios.post).mockResolvedValue({ data: { access, refresh: 'rotated-once' } });
+    const requests = [event({ jwt_refresh: 'shared' }), event({ jwt_refresh: 'shared' })];
+
+    await Promise.all(requests.map((request) => handle({ event: request, resolve })));
+
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    for (const request of requests) {
+      expect(request.locals.user.id).toBe('returning-user');
+      expect(request.cookies.set).toHaveBeenCalledWith(
+        'jwt_refresh',
+        'rotated-once',
+        expect.objectContaining({ maxAge: 2592000 })
+      );
+    }
+  });
+});

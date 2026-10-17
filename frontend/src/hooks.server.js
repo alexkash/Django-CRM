@@ -1,3 +1,4 @@
+import { REFRESH_COOKIE_MAX_AGE } from '$lib/server/auth-cookies.js';
 import { sequence } from '@sveltejs/kit/hooks';
 import * as Sentry from '@sentry/sveltekit';
 /**
@@ -202,40 +203,41 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
   // Try to authenticate user (LOCAL JWT DECODE - no API call!)
   if (accessToken) {
     jwtPayload = verifyTokenLocally(accessToken);
+  }
 
-    // If access token expired, try to refresh
-    if (!jwtPayload && refreshToken) {
-      const refreshed = await refreshAccessToken(refreshToken, event);
-      if (refreshed) {
-        // Update cookie with new access token
-        event.cookies.set('jwt_access', refreshed.access, {
+  // A browser may already have removed the expired access cookie. The
+  // refresh token can restore the session with or without that cookie.
+  if (!jwtPayload && refreshToken) {
+    const refreshed = await refreshAccessToken(refreshToken, event);
+    if (refreshed) {
+      // Update cookie with new access token
+      event.cookies.set('jwt_access', refreshed.access, {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24 // 1 day
+      });
+      // Persist the rotated refresh token. The one we just spent is
+      // blacklisted server-side, so keeping it would 401 the next refresh
+      // and bounce the user to /login an hour later.
+      if (refreshed.refresh) {
+        event.cookies.set('jwt_refresh', refreshed.refresh, {
           path: '/',
           httpOnly: true,
           sameSite: 'lax',
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 60 * 60 * 24 // 1 day
+          maxAge: REFRESH_COOKIE_MAX_AGE
         });
-        // Persist the rotated refresh token. The one we just spent is
-        // blacklisted server-side, so keeping it would 401 the next refresh
-        // and bounce the user to /login an hour later.
-        if (refreshed.refresh) {
-          event.cookies.set('jwt_refresh', refreshed.refresh, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 365 // 1 year
-          });
-          refreshToken = refreshed.refresh;
-        }
-        accessToken = refreshed.access;
-        jwtPayload = verifyTokenLocally(refreshed.access);
-      } else {
-        // Refresh failed, clear cookies
-        event.cookies.delete('jwt_access', { path: '/' });
-        event.cookies.delete('jwt_refresh', { path: '/' });
-        event.cookies.delete('org', { path: '/' });
+        refreshToken = refreshed.refresh;
       }
+      accessToken = refreshed.access;
+      jwtPayload = verifyTokenLocally(refreshed.access);
+    } else {
+      // Refresh failed, clear cookies
+      event.cookies.delete('jwt_access', { path: '/' });
+      event.cookies.delete('jwt_refresh', { path: '/' });
+      event.cookies.delete('org', { path: '/' });
     }
   }
 
@@ -294,7 +296,7 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
             httpOnly: true,
             sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 365 // 1 year
+            maxAge: REFRESH_COOKIE_MAX_AGE
           });
 
           // Extract org info from switch result (no additional API call!)

@@ -1,3 +1,4 @@
+import { REFRESH_COOKIE_MAX_AGE } from '$lib/server/auth-cookies.js';
 /**
  * Organization Selection Page - API Version
  *
@@ -114,7 +115,7 @@ export const actions = {
         httpOnly: true,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 365 // 1 year
+        maxAge: REFRESH_COOKIE_MAX_AGE
       });
 
       // Set org cookie for reference

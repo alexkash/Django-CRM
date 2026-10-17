@@ -1,3 +1,4 @@
+import { REFRESH_COOKIE_MAX_AGE } from '$lib/server/auth-cookies.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
@@ -90,7 +91,7 @@ export const actions = {
       httpOnly: true,
       sameSite: 'lax',
       secure,
-      maxAge: 60 * 60 * 24 * 365
+      maxAge: REFRESH_COOKIE_MAX_AGE
     });
     cookies.set('org', orgId, {
       path: '/',

@@ -50,6 +50,38 @@ class TestTokenRefreshView:
 
     url = "/api/auth/refresh-token/"
 
+    @pytest.mark.parametrize("age_days, expected_status", [(29, 200), (31, 401)])
+    def test_session_refresh_window_is_thirty_days(
+        self,
+        unauthenticated_client,
+        admin_user,
+        org_a,
+        admin_profile,
+        age_days,
+        expected_status,
+    ):
+        """A returning user can renew on day 29, but must sign in after day 30."""
+        from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+
+        issued_at = timezone.now() - timedelta(days=age_days)
+        with patch(
+            "rest_framework_simplejwt.tokens.aware_utcnow", return_value=issued_at
+        ):
+            token = OrgAwareRefreshToken.for_user_and_org(
+                admin_user, org_a, admin_profile
+            )
+
+        response = unauthenticated_client.post(
+            self.url, {"refresh": str(token)}, format="json"
+        )
+
+        assert response.status_code == expected_status
+        if expected_status == 200:
+            renewed = RefreshToken(response.data["refresh"])
+            assert renewed["exp"] - renewed["iat"] == 2592000
+            access = AccessToken(response.data["access"])
+            assert access["exp"] - access["iat"] == 3600
+
     def test_refresh_valid_token(
         self, unauthenticated_client, admin_user, org_a, admin_profile
     ):

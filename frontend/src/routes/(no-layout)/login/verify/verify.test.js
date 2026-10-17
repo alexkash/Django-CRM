@@ -69,6 +69,11 @@ describe('pressing the button', () => {
       'jwt_access',
       'jwt_refresh'
     ]);
+    expect(cookies.set).toHaveBeenCalledWith(
+      'jwt_refresh',
+      'r',
+      expect.objectContaining({ maxAge: 2592000, httpOnly: true, sameSite: 'lax' })
+    );
   });
 
   it('refuses a request with no token without calling the API', async () => {

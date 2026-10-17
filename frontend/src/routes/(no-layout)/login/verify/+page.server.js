@@ -1,3 +1,4 @@
+import { REFRESH_COOKIE_MAX_AGE } from '$lib/server/auth-cookies.js';
 /**
  * Magic Link Verification Page
  *
@@ -69,7 +70,7 @@ export const actions = {
         httpOnly: true,
         sameSite: 'lax',
         secure,
-        maxAge: 60 * 60 * 24 * 365 // 1 year
+        maxAge: REFRESH_COOKIE_MAX_AGE
       });
     } catch (/** @type {any} */ error) {
       return fail(400, { error: error.response?.data?.error || 'Verification failed' });
