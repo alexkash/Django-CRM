@@ -127,6 +127,36 @@ client/billing/discount/tax/template fields and every line item into a new `Draf
 `GET /api/invoices/{id}/pdf/` (`InvoicePDFView.get`, `:602-631`) streams
 `application/pdf`; a missing PDF backend answers `503`, any other generation failure `500`.
 
+The built-in invoice form uses Ukrainian labels and an A4 layout for `UAH`,
+including local number/date formatting and the total in Ukrainian words. Other
+currencies retain the English built-in form. An explicitly authored custom HTML
+template (selected on the invoice or set as the organization's default) continues
+to take precedence; custom CSS also remains supported.
+
+The UAH form preserves partial addresses (including state, postcode and ISO
+country code). An address entered on the invoice takes precedence over the
+organization address even when only one component is present. Both built-in
+forms show each line's discount amount beneath its description, so the printed
+quantity, unit price and net amount can be reconciled.
+
+On invoice creation, omitted client name, email, phone and address fields are
+copied from the selected visible account. Explicitly supplied fields, including
+blank strings, are preserved. Copied nonblank values are validated against the
+invoice field limits before insertion; invalid account details return a field
+validation error. Subsequent account edits do not update the stored invoice
+client details, and existing documents are not backfilled.
+
+Built-in forms use the selected/default template's logo, falling back to the
+organization logo. They print invoice notes and payment terms, falling back to
+the template's `default_notes` and `default_terms`, and include `footer_text`.
+Bank details such as IBAN and bank name can currently be entered in payment
+terms; there are no structured issuer bank-account fields yet. Supplier name,
+contact information and tax/registration identifier come from the organization
+profile. The UAH form labels the existing generic tax as `Податок`: a zero tax
+does not establish VAT registration status or imply `Без ПДВ`. This PDF change
+does not implement the separately planned legal-entity, VAT-status, archived
+document or service-act workflows.
+
 ## Estimates
 
 The same list/detail/lifecycle shape as invoices, with one structural difference: **an estimate can be
@@ -348,3 +378,53 @@ the two are tied together on the server:
   paused.
 - A `next_generation_date` later than `start_date` is allowed (a schedule that starts now and first
   bills at the end of the month).
+
+## Ukrainian issuing companies and partial service acts
+
+This optional form extends `Invoice`; `issuer = null` preserves the generic contract above. See [Ukrainian billing documents](../self-hosting/billing-documents.md) for the operator workflow and limits.
+
+### Issuing-company settings
+
+`GET/PUT/DELETE legal-entities/{id}/scans/logo/` manages the normalized private
+company logo with the same administrator and image limits as the other scan
+routes. Company serializers expose only the read-only `logo_sha256`, never the
+image bytes. A frozen copy of the logo is included in issued invoices and their
+acts, in both PDF variants.
+
+Under `/api/invoices/billing/legal-entities/`, authenticated organization members may list and read companies and their bank accounts; writes require an organization administrator. Company and bank UUID lookups are organization-scoped. Used companies are archived with `active=false`, not deleted.
+
+- `GET/POST legal-entities/`; `GET/PUT/PATCH legal-entities/{id}/`.
+- `GET/POST legal-entities/{id}/bank-accounts/`; `GET/PUT/PATCH/DELETE legal-entities/{id}/bank-accounts/{bank_id}/`. A used bank account cannot be deleted.
+- `GET/PUT/DELETE legal-entities/{id}/scans/signature/` and `.../scans/stamp/`, administrator-only. Upload is multipart with a `file` field. Image responses are `image/png` and `private, no-store`; lists/details never contain the image bytes.
+
+Company fields include `entity_type` (`FOP` or `LLC`), `legal_name`, `registration_code`, address/contact/signer fields, `vat_status` (`NON_PAYER` or `PAYER`), `default_vat_rate`, `vat_registration_number`, `tax_system_text`, `invoice_prefix`, `act_prefix` and `active`. Prefixes are fixed after their first issued number. Bank fields are `iban`, `bank_name`, `mfo`, `active`; the bank must belong to the selected issuing entity.
+
+### Ukrainian invoices
+
+Existing `POST /api/invoices/` and `PUT /api/invoices/{id}/` accept `issuer_id`, `bank_account_id`, optional `payer_id`, `contract_number/date`, `order_reference`, `service_period_start/end`, `place_of_issue` and optional `draft_parties` overrides for `customer`/`payer`. Line items additionally accept `unit`, also available as an optional product default. The customer account has structured legal/bank/signer fields. Existing account/contact visibility rules continue to apply.
+
+A non-null issuer selects the UAH form; switching it back to generic is rejected. Prices exclude VAT. Tax is rounded HALF_UP per line and summed once. Discounts and shipping are rejected only for this form. A `NON_PAYER` uses a zero rate and prints `Без ПДВ`; a zero-rate `PAYER` retains its distinct tax status. Fields may remain incomplete in a draft; issuance validates the required particulars and period again.
+
+`POST /api/invoices/{id}/issue/` is an idempotent transaction. It allocates the company's invoice number, freezes the snapshot and two PDFs, sets `issued_at`, and returns `{"invoice": ...}`. For compatibility the wire status is `Sent`, shown as `Виписано` by the Ukrainian UI; it does not set the email's `sent_at` or send a message. A failed render rolls the whole issue back. Payment/explicit send actions require prior issue. Deleting the last payment restores `Sent`/`Overdue` from `issued_at`, preserving the issued number and archive.
+
+`GET /api/invoices/{id}/pdf/?variant=clean|stamped` defaults to clean. Drafts are watermarked previews without a new number; issued documents return archived bytes. Draft preview must also be allowed to read current customer/payer particulars. Issued previews use the existing snapshot. Invalid variants return 400. The two variants and scan responses are private and not cached.
+
+Invoice detail adds `issuer`, `issuer_name`, `bank_account`, `vat_status`, `issued_at`, contract/period fields, `printed_parties` and `closure`. `issuer_name` and `printed_parties` use historical particulars after issue. `closure` contains decimal-string `closed_net/vat/total`, `remaining_net/vat/total`, and per-line quantities, including `remaining_quantity` with eight decimal places. Existing payment fields are independent. Neither the raw archive bytes nor the complete internal snapshot are serialized.
+
+### Partial service acts
+
+Routes are mounted at `/api/invoices/billing/acts/`:
+
+| Method and suffix | Behavior |
+|---|---|
+| `GET /` | Paginated visible acts; filters `invoice`, `account`, `issuer`, `status`, `period_start`, `period_end`, `limit`, `offset` |
+| `POST /` | Draft from `invoice_id`, `issue_date`, service-period dates and `lines: [{source_line_id, quantity}]` |
+| `GET/PUT /{id}/` | Read or change a draft; the invoice association cannot change |
+| `DELETE /{id}/` | Delete a draft only |
+| `POST /{id}/issue/` | Recheck remaining quantities and budgets, allocate the company's act number, freeze two PDFs; repeat is idempotent |
+| `POST /{id}/cancel/` | Cancel an issued act with `reason`; release allocation once, retain number/PDF |
+| `GET /{id}/pdf/?variant=clean|stamped` | Watermarked draft or archived issued/cancelled PDF |
+
+Response fields include `invoice_id`, `invoice_number`, `issuer_id/name`, `vat_status/rate`, `status` (`Draft`, `Issued`, `Cancelled`), `number`, dates, net/VAT/total, lifecycle timestamps and `lines`. An act keeps the invoice's historical parties/contract; its date and service period are separate. Only issued acts consume the remaining source-line quantities and exact monetary budgets. Issuance, edit and cancellation lock parent invoice before the act and sequence. A stale draft that no longer fits returns 409 without partially issuing. Amounts and quantities are decimal strings; quantities support eight decimal places.
+
+Each act endpoint first enforces the parent's invoice visibility. Missing, foreign and hidden objects are indistinguishable through a given endpoint (404); organization membership alone grants no access. Client-supplied organization, numbers, totals, snapshot, issuer or archive fields do not override server-derived values. An invoice with active issued acts cannot be cancelled.

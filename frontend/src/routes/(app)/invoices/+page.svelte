@@ -71,6 +71,8 @@
   {/snippet}
   {#snippet actions()}
     <a class="v2-btn" href="{resolve('/legacy')}?kind=invoice">SuiteCRM history</a>
+    <a class="v2-btn" href={resolve('/invoices/acts')}>Акти</a>
+    <a class="v2-btn" href={resolve('/invoices/new') + '?format=ua'}>Рахунок (Україна)</a>
     <!-- The page's own query string: the export rebuilds the same API query
          from it, so the file holds every row this list would page through. -->
     <a
@@ -158,13 +160,28 @@
               <td>
                 <a class="v2-row-link" href={resolve(`/invoices/${inv.id}`)}>
                   <span class="v2-table-primary v2-num" style="font-size:13px"
-                    >{inv.invoice_number}</span
+                    >{inv.issuer && !inv.issued_at ? 'Чернетка рахунку' : inv.invoice_number}</span
                   >
                 </a>
+                {#if inv.issuer}<div class="v2-sub">
+                    {inv.issuer_name || inv.issuer.legal_name}
+                  </div>{/if}
               </td>
               <td>{inv.account.name}</td>
               <td>
-                <Pill tone={INVOICE_STATUS_TONE[inv.status]}>{invoiceStatusLabel(inv.status)}</Pill>
+                <Pill tone={INVOICE_STATUS_TONE[inv.status]}
+                  >{inv.issuer
+                    ? ({
+                        Draft: 'Чернетка',
+                        Sent: 'Виписано',
+                        Viewed: 'Виписано',
+                        Paid: 'Сплачено',
+                        Partially_Paid: 'Частково сплачено',
+                        Overdue: 'Прострочено',
+                        Cancelled: 'Скасовано'
+                      }[inv.status] ?? invoiceStatusLabel(inv.status))
+                    : invoiceStatusLabel(inv.status)}</Pill
+                >
               </td>
               <td class="v2-r v2-num" style="font-weight:600"
                 >{money(inv.total_amount, inv.currency)}</td
@@ -178,7 +195,7 @@
                 {ageLabel(inv)}
               </td>
               <td>
-                {#if inv.status === 'Overdue' || inv.status === 'Draft'}
+                {#if !inv.issuer && (inv.status === 'Overdue' || inv.status === 'Draft')}
                   <form
                     method="POST"
                     action="?/send"

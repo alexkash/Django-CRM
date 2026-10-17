@@ -391,6 +391,7 @@ class TimesheetView(APIView):
                 started_at__date__lte=end,
             )
             .select_related("case", "profile", "profile__user", "invoice")
+            .defer("invoice__archived_pdf_clean", "invoice__archived_pdf_stamped")
             .order_by("started_at")
         )
         days = OrderedDict()

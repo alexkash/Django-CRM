@@ -80,26 +80,18 @@ included, is invisible to this default suite; only the explicit `Model.objects.f
 application code is being tested. See [Multi-tenancy and RLS](../architecture/multi-tenancy-and-rls.md#the-two-layer-contract)
 for why that ORM filter has to be correct on its own merits, independent of RLS.
 
-The `postgres_only`-marked tests exist to close part of that gap, and they self-skip safely rather
-than fail when there's no PostgreSQL connection: each one checks `connection.vendor != "postgresql"`
-and calls `pytest.skip(...)` if so. Under the SQLite settings this repository ships, that check is
-always true, so these six tests always skip. They don't fail, and a green `uv run pytest` run tells
-you nothing about whether they'd pass. One of them, `test_portal_rls.py`'s module docstring,
-describes an intended way to actually run them for real, against a non-superuser PostgreSQL role:
-`RLS_ENFORCE=1`, pointed at a `crm.test_settings_postgres` module. A comment in `backend/.env`
-(gitignored, `.gitignore:20`, and absent from `.env.example`, so a fresh clone has neither the
-file nor the reference) names the same two pieces. Neither source is authoritative, because that
-settings module does not exist anywhere in this checkout as of this writing, so this documented path
-does not currently work. If you need to prove RLS isolation holds against real data rather than
-just reading the policy SQL, use `manage.py manage_rls --test` against a real, non-superuser-configured PostgreSQL
-database instead. See [PostgreSQL and RLS](../self-hosting/postgresql-and-rls.md#verifying-isolation)
-for exactly what it proves and how to set up that role.
+The `postgres_only` tests close the policy and concurrency gap when run with `crm.test_settings_postgres` against a role with `NOSUPERUSER NOBYPASSRLS` and permission to create its test database. That settings module exists and reads `DBNAME`, `DBUSER`, `DBPASSWORD`, `DBHOST`, and `DBPORT`. `.github/workflows/tests.yml` defines the current PostgreSQL setup: the ordinary suite runs as a test superuser to check actual types/constraints, and the policy-bound role runs `-m postgres_only` separately. The SQLite run cannot substitute for either PostgreSQL run.
+
+```bash
+# From backend/, with connection variables for a disposable local test database:
+DJANGO_SETTINGS_MODULE=crm.test_settings_postgres uv run pytest --no-cov -m postgres_only
+```
+
+Do not point a test run at production. Do not claim RLS verification from a superuser role or a skipped SQLite test. For management commands that need explicit test settings, use `uv run django-admin --settings=crm.test_settings ...`; this checkout's `manage.py` overrides the environment setting.
 
 ## What CI runs
 
-`.github/workflows/tests.yml`'s `backend-tests` job runs on the same SQLite settings described
-above, there's no PostgreSQL service in that job, so `postgres_only` tests skip there too, and
-CI itself has no path that runs them for real. Two steps matter, in this order:
+`.github/workflows/tests.yml`'s `backend-tests` job uses SQLite; the separate `backend-tests-postgres` job runs PostgreSQL and a policy-bound role as described above. Two steps matter, in this order:
 
 ```bash
 uv run python manage.py makemigrations --check --dry-run

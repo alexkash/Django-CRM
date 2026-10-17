@@ -1,0 +1,75 @@
+@page {
+    size: A4;
+    margin: 16mm 15mm 18mm;
+    @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-family: 'DejaVu Sans', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+    }
+}
+
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: 'DejaVu Sans', sans-serif;
+    font-size: 9pt;
+    line-height: 1.4;
+    color: #172033;
+}
+p { margin: 3pt 0; }
+.letterhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 10pt;
+    border-bottom: 2pt solid #3B82F6;
+    margin-bottom: 12pt;
+}
+.brand { display: flex; align-items: center; width: 75%; gap: 14pt; font-size: 8pt; }
+.logo { max-width: 100pt; max-height: 44pt; object-fit: contain; flex-shrink: 0; }
+.company-name { font-size: 12pt; font-weight: bold; margin-bottom: 4pt; }
+.document-kind { text-align: right; font-weight: bold; letter-spacing: 1pt; color: #1E40AF; }
+.document-kind span { font-size: 7pt; font-weight: normal; letter-spacing: 0; color: #64748b; }
+h1 { margin: 0 0 6pt; font-size: 16pt; line-height: 1.3; overflow-wrap: anywhere; }
+.dates { color: #475569; margin-bottom: 12pt; }
+.dates span { margin-left: 24pt; }
+h2 { font-size: 9pt; margin: 0 0 5pt; }
+table { width: 100%; border-collapse: collapse; }
+.parties { margin-bottom: 10pt; }
+.parties th { width: 100pt; color: #64748b; font-weight: normal; text-align: left; }
+.parties th, .parties td { padding: 3pt 0; vertical-align: top; overflow-wrap: anywhere; }
+.payment-details {
+    padding: 8pt 12pt;
+    border: 0.5pt solid #cbd5e1;
+    background: #f8fafc;
+    margin-bottom: 12pt;
+    overflow-wrap: anywhere;
+}
+.items { table-layout: fixed; }
+.items thead { display: table-header-group; }
+.items th {
+    text-align: left;
+    font-size: 8pt;
+    background: #edf2f7;
+    border-top: 0.7pt solid #94a3b8;
+    border-bottom: 0.7pt solid #94a3b8;
+}
+.items th, .items td { padding: 6pt; vertical-align: top; overflow-wrap: anywhere; }
+.items td { border-bottom: 0.5pt solid #cbd5e1; }
+.items tr { break-inside: avoid; }
+.items strong { font-weight: normal; }
+.items .number { width: 25pt; text-align: center; }
+.items .quantity { width: 59pt; text-align: right; }
+.items .money { width: 92pt; text-align: right; }
+.item-description { color: #64748b; font-size: 8pt; margin-top: 3pt; }
+.totals { width: 62%; margin: 10pt 0 12pt auto; break-inside: avoid; }
+.totals th { text-align: left; font-weight: normal; }
+.totals td { text-align: right; white-space: nowrap; }
+.totals th, .totals td { padding: 4pt 7pt; }
+.totals .total { border-top: 1pt solid #1E40AF; background: #edf2f7; font-size: 11pt; }
+.totals .total th, .totals .total td { font-weight: bold; }
+.amount-in-words { border-top: 0.5pt solid #cbd5e1; padding: 8pt 0; break-inside: avoid; }
+.amount-in-words div { font-size: 8pt; color: #64748b; margin-bottom: 4pt; }
+.payment-purpose, .notes { margin-top: 8pt; overflow-wrap: anywhere; }
+footer { margin-top: 14pt; padding-top: 8pt; border-top: 0.5pt solid #cbd5e1; font-size: 8pt; color: #64748b; }

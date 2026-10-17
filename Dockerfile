@@ -29,6 +29,9 @@ RUN uv sync --frozen --no-install-project
 
 # Copy backend source
 COPY backend/ .
+# Compose may run the image as a non-root UID. Archive extraction can retain
+# restrictive directory modes, including on a reused COPY layer.
+RUN find /app -type d -exec chmod 0755 {} +
 
 # Put the venv's binaries on PATH so `python`, `gunicorn`, `celery` etc. resolve.
 ENV PATH="/opt/venv/bin:$PATH"

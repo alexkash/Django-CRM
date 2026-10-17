@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Invoice {{ invoice.invoice_number }}</title>
-    <link rel="stylesheet" href="invoice.css">
 </head>
 <body>
     <div class="invoice-container">
@@ -36,9 +35,9 @@
 
             <div class="invoice-branding">
                 <div class="invoice-title">Invoice</div>
-                {% if org.logo %}
+                {% if logo %}
                 <div class="logo-container">
-                    <img src="{{ org.logo.url }}" alt="{{ org.name }}" class="logo">
+                    <img src="{{ logo.url }}" alt="{{ org.name }}" class="logo">
                 </div>
                 {% else %}
                 <div class="logo-container">
@@ -132,6 +131,9 @@
                         {% else %}
                         <span class="item-title">{{ item.description }}</span>
                         {% endif %}
+                        {% if item.discount_amount %}
+                        <span class="item-desc">Line discount: {{ item.discount_amount }}</span>
+                        {% endif %}
                     </td>
                     <td class="qty-col">{{ item.quantity }}</td>
                     <td class="price-col">{{ item.unit_price }}</td>
@@ -186,10 +188,17 @@
         </div>
 
         <!-- Notes Section -->
-        {% if invoice.notes %}
+        {% if notes %}
         <div class="footer-notes">
             <h4>Description:</h4>
-            <p>{{ invoice.notes|linebreaks }}</p>
+            {{ notes|linebreaks }}
+        </div>
+        {% endif %}
+
+        {% if terms %}
+        <div class="footer-notes">
+            <h4>Payment details &amp; terms:</h4>
+            {{ terms|linebreaks }}
         </div>
         {% endif %}
 
@@ -205,6 +214,9 @@
 
         <!-- Copyright Footer -->
         <div class="copyright">
+            {% if footer_text %}
+            {{ footer_text|linebreaks }}
+            {% endif %}
             {% if org.tax_id %}
             <p>Tax ID: {{ org.tax_id }}</p>
             {% endif %}

@@ -1,10 +1,12 @@
+import { listInvoiceActs } from '$lib/server/v2/service-acts.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
   getInvoice,
   sendInvoice,
   markInvoicePaid,
   cancelInvoice,
-  duplicateInvoice
+  duplicateInvoice,
+  issueInvoice
 } from '$lib/server/v2/invoices.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 
@@ -14,11 +16,23 @@ import { readableError } from '$lib/server/v2/form-errors.js';
  * @type {import('./$types').PageServerLoad}
  */
 export async function load({ cookies, params }) {
-  return await getInvoice({ cookies }, params.id);
+  const detail = await getInvoice({ cookies }, params.id);
+  return {
+    ...detail,
+    acts: detail.billing?.issuer_id ? await listInvoiceActs({ cookies }, params.id) : []
+  };
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  issue: async (event) => {
+    try {
+      await issueInvoice(event, event.params.id);
+      return { issued: true };
+    } catch (err) {
+      return fail(err.status ?? 400, { error: readableError(err, 'Не вдалося виписати рахунок.') });
+    }
+  },
   /** Send it, or re-send an overdue one. 400 if it is Paid or Cancelled. */
   send: async ({ cookies, params }) => {
     try {

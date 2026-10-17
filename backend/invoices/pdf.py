@@ -13,6 +13,9 @@ from urllib.parse import unquote, urlparse
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import escape
+from django.utils.translation import get_language, override
+
+from invoices.formatting import format_document_address
 
 try:
     from weasyprint import CSS, HTML
@@ -160,10 +163,14 @@ if WEASYPRINT_AVAILABLE:
             return super().fetch(url, headers)
 
 
-def get_default_css():
+def get_default_css(currency="USD"):
     """Get the default CSS for PDF generation."""
     css_path = os.path.join(
-        os.path.dirname(__file__), "templates", "invoices", "pdf", "invoice.css"
+        os.path.dirname(__file__),
+        "templates",
+        "invoices",
+        "pdf",
+        "invoice_uk.css" if currency == "UAH" else "invoice.css",
     )
     if os.path.exists(css_path):
         with open(css_path, "r", encoding="utf-8") as f:
@@ -460,10 +467,12 @@ def format_currency(amount, currency="USD"):
     symbol = symbols.get(currency, currency + " ")
     if amount is None:
         amount = Decimal("0.00")
+    if currency == "UAH":
+        return f"{amount:,.2f}".replace(",", " ").replace(".", ",") + " грн"
     return f"{symbol}{amount:,.2f}"
 
 
-def generate_invoice_pdf(invoice, include_payments=True):
+def generate_invoice_pdf(invoice, include_payments=True, variant="clean"):
     """
     Generate a PDF for an invoice.
 
@@ -474,13 +483,17 @@ def generate_invoice_pdf(invoice, include_payments=True):
     Returns:
         bytes: PDF file content
     """
+    if invoice.issuer_id:
+        from invoices.billing.pdf import document_pdf
+
+        return document_pdf(invoice, variant=variant)
+
     check_weasyprint()
+    from invoices.models import InvoiceTemplate, line_discount, line_gross
 
     # Get the template - use invoice's template, or fall back to org's default template
     template = invoice.template
     if not template:
-        from invoices.models import InvoiceTemplate
-
         template = InvoiceTemplate.objects.filter(
             org=invoice.org, is_default=True
         ).first()
@@ -488,6 +501,11 @@ def generate_invoice_pdf(invoice, include_payments=True):
     # Pre-format line items with currency
     line_items = []
     for item in invoice.line_items.all().order_by("order"):
+        item_discount = line_discount(
+            line_gross(item.quantity, item.unit_price),
+            item.discount_type,
+            item.discount_value,
+        )
         # Use name field if present, otherwise fall back to description
         line_items.append(
             {
@@ -498,6 +516,11 @@ def generate_invoice_pdf(invoice, include_payments=True):
                 "quantity": item.quantity,
                 "unit_price": format_currency(item.unit_price, invoice.currency),
                 "tax_rate": item.tax_rate,
+                "discount_amount": (
+                    format_currency(item_discount, invoice.currency)
+                    if item_discount > 0
+                    else ""
+                ),
                 # net_amount, so the column adds up to the subtotal below it.
                 "total": format_currency(item.net_amount, invoice.currency),
             }
@@ -523,6 +546,15 @@ def generate_invoice_pdf(invoice, include_payments=True):
         "line_items": line_items,
         "payments": payments,
         "org": invoice.org,
+        "supplier_address": (
+            format_document_address(invoice, "billing_")
+            or format_document_address(invoice.org)
+        ),
+        "client_address": format_document_address(invoice, "client_"),
+        "logo": (template.logo if template and template.logo else invoice.org.logo),
+        "notes": invoice.notes or (template.default_notes if template else ""),
+        "terms": invoice.terms or (template.default_terms if template else ""),
+        "footer_text": template.footer_text if template else "",
         "status_class": f"status-{invoice.status.lower().replace('_', '-')}",
         # Pre-formatted currency values
         "subtotal": format_currency(invoice.subtotal, invoice.currency),
@@ -533,21 +565,31 @@ def generate_invoice_pdf(invoice, include_payments=True):
         "amount_paid": format_currency(invoice.amount_paid, invoice.currency),
         "amount_due": format_currency(invoice.amount_due, invoice.currency),
     }
+    if invoice.currency == "UAH":
+        from invoices.formatting import amount_in_words_uk
+
+        context["total_in_words"] = amount_in_words_uk(invoice.total_amount)
 
     # Check for custom template HTML
-    if template and template.template_html:
+    custom_html = bool(template and template.template_html)
+    if custom_html:
         html_content = template.template_html
         # Replace placeholders with actual values
         html_content = render_invoice_template(html_content, context)
     else:
         # Use default template
-        html_content = render_to_string("invoices/pdf/invoice.html", context)
+        template_name = (
+            "invoice_uk.html" if invoice.currency == "UAH" else "invoice.html"
+        )
+        language = "uk" if invoice.currency == "UAH" else get_language()
+        with override(language):
+            html_content = render_to_string(f"invoices/pdf/{template_name}", context)
 
     # Get CSS
     if template and template.template_css:
         css_content = template.template_css
     else:
-        css_content = get_default_css()
+        css_content = get_default_css("USD" if custom_html else invoice.currency)
 
     # Apply template colors if set
     if template:

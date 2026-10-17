@@ -38,6 +38,11 @@ ORG_SCOPED_TABLES = [
     "legacy_relation",
     "legacy_file",
     "legacy_projection",
+    "legal_entity",
+    "legal_entity_bank_account",
+    "billing_document_sequence",
+    "service_act",
+    "service_act_line",
     # Core business entities
     "lead",
     "accounts",  # Note: plural

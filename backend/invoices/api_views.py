@@ -12,9 +12,10 @@ from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -33,6 +34,14 @@ from common.serializer import (
 from common.utils import create_attachment
 from common.validators import date_param, payload_id_list, uuid_param, validate_uuid
 from contacts.access import visible_contacts_qs
+from invoices.api_schema import (
+    INVOICE_LIST_PARAMETERS,
+    InvoiceCreateRequestSerializer,
+    InvoiceDetailResponseSerializer,
+    InvoiceListResponseSerializer,
+    InvoiceMutationResponseSerializer,
+    InvoiceWriteRequestSerializer,
+)
 from invoices.models import (
     UNPAID_STATUSES,
     Estimate,
@@ -172,16 +181,28 @@ class InvoiceListView(APIView, LimitOffsetPagination):
         """Every invoice the caller may open, before the query string."""
         return (
             visible_invoices_qs(self.request.profile)
-            .select_related("account", "contact", "opportunity", "created_by")
+            .select_related("account", "contact", "opportunity", "created_by", "issuer")
             .prefetch_related("line_items", "payments", "assigned_to")
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_list")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_list",
+        description="List visible invoices. Custom field filters use additional query keys cf_<key>=value.",
+        parameters=INVOICE_LIST_PARAMETERS,
+        responses={200: InvoiceListResponseSerializer},
+    )
     def get(self, request, *args, **kwargs):
         base = self.get_queryset()
         queryset = filter_invoices(base, request.query_params)
         results = self.paginate_queryset(queryset, request, view=self)
-        serializer = InvoiceListSerializer(results, many=True)
+        from invoices.billing.services import get_closure_summaries
+
+        serializer = InvoiceListSerializer(
+            results,
+            many=True,
+            context={"closure_summaries": get_closure_summaries(results)},
+        )
 
         return Response(
             {
@@ -243,7 +264,12 @@ class InvoiceListView(APIView, LimitOffsetPagination):
             counts=("count", "action_needed"),
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_create")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_create",
+        request=InvoiceCreateRequestSerializer,
+        responses={201: InvoiceMutationResponseSerializer},
+    )
     def post(self, request, *args, **kwargs):
         cf_payload = request.data.get("custom_fields")
         if isinstance(cf_payload, str):
@@ -310,7 +336,11 @@ class InvoiceDetailView(APIView):
     def get_object(self, pk):
         return self.model.objects.filter(id=pk, org=self.request.profile.org).first()
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_retrieve")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_retrieve",
+        responses={200: InvoiceDetailResponseSerializer},
+    )
     def get(self, request, pk, format=None):
         invoice, error = get_invoice_or_error(request, pk)
         if error:
@@ -349,7 +379,12 @@ class InvoiceDetailView(APIView):
             }
         )
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_update")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_update",
+        request=InvoiceWriteRequestSerializer(partial=True),
+        responses={200: InvoiceMutationResponseSerializer},
+    )
     def put(self, request, pk, format=None):
         with transaction.atomic():
             response, invoice = self._update(request, pk)
@@ -433,6 +468,11 @@ class InvoiceSendView(APIView):
             )
             if error:
                 return error
+
+            if invoice.issuer_id and not invoice.issued_at:
+                return Response(
+                    {"error": True, "message": "Спочатку випишіть рахунок."}, status=400
+                )
 
             # A settled invoice must not be re-sent: doing so would overwrite
             # sent_at/is_email_sent and mail the client about a closed invoice.
@@ -521,6 +561,14 @@ class InvoiceDuplicateView(APIView):
         if error:
             return error
 
+        if original.issuer_id:
+            from invoices.billing.services import duplicate_ua_invoice
+
+            invoice = duplicate_ua_invoice(actor=request, original=original)
+            return Response(
+                {"error": False, "invoice": InvoiceSerializer(invoice).data}, status=201
+            )
+
         with transaction.atomic():
             # Create duplicate invoice
             new_invoice = Invoice.objects.create(
@@ -605,6 +653,12 @@ class InvoiceCancelView(APIView):
         if error:
             return error
 
+        if invoice.issuer_id and invoice.service_acts.filter(status="Issued").exists():
+            return Response(
+                {"error": True, "message": "Спочатку скасуйте виписані акти."},
+                status=400,
+            )
+
         # Cannot cancel already cancelled invoices
         if invoice.status == "Cancelled":
             return Response(
@@ -640,19 +694,47 @@ class InvoicePDFView(APIView):
 
     permission_classes = (IsAuthenticated, HasOrgContext)
 
-    @extend_schema(tags=["Invoices"], operation_id="invoices_pdf")
+    @extend_schema(
+        tags=["Invoices"],
+        operation_id="invoices_pdf",
+        parameters=[
+            OpenApiParameter(
+                "variant", OpenApiTypes.STR, enum=["clean", "stamped"], default="clean"
+            ),
+        ],
+        responses={(200, "application/pdf"): OpenApiTypes.BINARY},
+    )
     def get(self, request, pk):
         invoice, error = get_invoice_or_error(request, pk)
         if error:
             return error
 
+        variant = request.query_params.get("variant", "clean")
+        if variant not in ("clean", "stamped"):
+            return Response(
+                {"error": True, "message": "Invalid PDF variant"}, status=400
+            )
         try:
-            pdf_content = generate_invoice_pdf(invoice)
+            if invoice.issuer_id:
+                from invoices.billing.pdf import document_pdf
+
+                pdf_content = document_pdf(invoice, variant=variant, actor=request)
+            else:
+                pdf_content = generate_invoice_pdf(invoice)
             filename = generate_invoice_filename(invoice)
 
             response = HttpResponse(pdf_content, content_type="application/pdf")
+            response["Cache-Control"] = "private, no-store"
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            if invoice.issuer_id:
+                from django.utils.http import content_disposition_header
+
+                response["Content-Disposition"] = content_disposition_header(
+                    False, filename=filename
+                )
             return response
+        except APIException:
+            raise
         except ImportError:
             logger.exception("PDF generation library not available")
             return Response(
@@ -718,11 +800,17 @@ class InvoiceLineItemListView(APIView):
             data=request.data, request_obj=request
         )
         if serializer.is_valid():
+            if invoice.issuer_id:
+                from invoices.billing.invoice_validation import validate_ua_line
+
+                validate_ua_line(serializer.validated_data, invoice)
             line_item = serializer.save(invoice=invoice, org=request.profile.org)
 
             # Recalculate invoice totals
             invoice.recalculate_totals()
             invoice.save()
+            if invoice.issuer_id:
+                line_item.refresh_from_db()
 
             return Response(
                 {
@@ -774,11 +862,17 @@ class InvoiceLineItemDetailView(APIView):
             line_item, data=request.data, partial=True, request_obj=request
         )
         if serializer.is_valid():
+            if invoice.issuer_id:
+                from invoices.billing.invoice_validation import validate_ua_line
+
+                validate_ua_line(serializer.validated_data, invoice, line_item)
             line_item = serializer.save()
 
             # Recalculate invoice totals
             line_item.invoice.recalculate_totals()
             line_item.invoice.save()
+            if invoice.issuer_id:
+                line_item.refresh_from_db()
 
             return Response(
                 {
@@ -896,6 +990,7 @@ class PaymentDetailView(APIView):
                 id=pk, invoice_id=invoice_id, org=request.profile.org
             )
             .select_related("invoice")
+            .defer("invoice__archived_pdf_clean", "invoice__archived_pdf_stamped")
             .first()
         )
         if not payment:

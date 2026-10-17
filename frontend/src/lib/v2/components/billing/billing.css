@@ -1,0 +1,144 @@
+.billing {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+.billing h2 {
+  font-size: 16px;
+  margin: 0 0 16px;
+}
+.billing section {
+  background: var(--v2-surface, #fff);
+  border: 1px solid var(--v2-border, #dce2e4);
+  border-radius: 8px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+.billing .b-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px 22px;
+}
+.billing label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  min-width: 0;
+}
+.billing input:not([type='checkbox']),
+.billing select,
+.billing textarea {
+  width: 100%;
+  min-width: 0;
+  background: var(--v2-bg, #fff);
+  border: 1px solid var(--v2-border, #cdd6d9);
+  border-radius: 5px;
+  padding: 9px 10px;
+  color: inherit;
+  font: inherit;
+}
+.billing textarea {
+  min-height: 75px;
+  resize: vertical;
+}
+.billing input:focus,
+.billing select:focus,
+.billing textarea:focus {
+  outline: 2px solid var(--v2-teal, #167a7a);
+  outline-offset: 1px;
+}
+.billing .b-wide {
+  grid-column: 1/-1;
+}
+.billing .b-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 16px 0;
+}
+.billing .b-error {
+  padding: 14px;
+  border: 1px solid #c27051;
+  background: #fff3ed;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  color: #7d341c;
+}
+.billing table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.billing th,
+.billing td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--v2-border, #dde3e6);
+  text-align: left;
+  vertical-align: top;
+}
+.billing th {
+  color: var(--v2-muted, #607079);
+  font-weight: 500;
+  font-size: 11px;
+}
+.billing .b-scroll {
+  overflow-x: auto;
+}
+.billing .b-lines {
+  min-width: 700px;
+}
+.billing .b-totals {
+  margin: 18px 0 0 auto;
+  max-width: 380px;
+}
+.billing .b-totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 25px;
+  padding: 7px 0;
+}
+.billing .b-totals dt,
+.billing .b-totals dd {
+  margin: 0;
+}
+.billing .b-totals .b-grand {
+  border-top: 1px solid var(--v2-border, #bdcdd0);
+  font-size: 17px;
+  font-weight: 600;
+}
+.billing .b-muted {
+  color: var(--v2-muted, #65757c);
+  font-size: 12px;
+}
+.billing summary {
+  cursor: pointer;
+  margin: 12px 0;
+}
+.billing .b-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.billing .b-stats strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 18px;
+}
+.billing .b-scan {
+  max-width: 170px;
+  max-height: 110px;
+  object-fit: contain;
+  display: block;
+  margin: 10px 0;
+}
+@media (max-width: 700px) {
+  .billing .b-grid,
+  .billing .b-stats {
+    grid-template-columns: 1fr;
+  }
+  .billing section {
+    padding: 16px;
+  }
+}

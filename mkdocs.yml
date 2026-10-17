@@ -66,6 +66,7 @@ nav:
       - Email and Celery: self-hosting/email-and-celery.md
       - Google OAuth: self-hosting/google-oauth.md
       - Backups and upgrades: self-hosting/backups-and-upgrades.md
+      - Ukrainian billing documents: self-hosting/billing-documents.md
       - Security hardening: self-hosting/security-hardening.md
       - Troubleshooting: self-hosting/troubleshooting.md
   - Architecture:
