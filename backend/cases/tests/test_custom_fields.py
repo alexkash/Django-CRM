@@ -166,6 +166,23 @@ class TestCaseListFilter:
 
 @pytest.mark.django_db
 class TestCaseDetailResponse:
+    def test_imported_geodata_is_hidden_but_values_are_preserved(
+        self, admin_client, case_a, org_a
+    ):
+        _make_severity_def(org_a)
+        _make_severity_def(
+            org_a, key="jjwg_maps_lat_c", field_type="number", options=None
+        )
+        case_a.custom_fields = {"severity": "S2", "jjwg_maps_lat_c": 50}
+        case_a.save()
+        response = admin_client.get(f"{CASES_LIST_URL}{case_a.id}/")
+        assert response.status_code == 200
+        assert [d["key"] for d in response.json()["custom_field_definitions"]] == [
+            "severity"
+        ]
+        case_a.refresh_from_db()
+        assert case_a.custom_fields == {"severity": "S2", "jjwg_maps_lat_c": 50}
+
     def test_detail_includes_definitions_and_values(self, admin_client, case_a, org_a):
         _make_severity_def(org_a)
         case_a.custom_fields = {"severity": "S2"}

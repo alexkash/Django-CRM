@@ -5,6 +5,49 @@ from django.test.utils import CaptureQueriesContext
 from legacy.tests.test_access import linked_context
 
 
+def test_history_hides_imported_geodata_and_utm_without_changing_source(
+    org_a, tmp_path, admin_client
+):
+    from legacy.importer.relations import project_relations
+    from legacy.models import LegacyRecord
+    from legacy.tests.helpers import make_context
+
+    ctx = make_context(
+        org_a,
+        tmp_path,
+        {
+            "accounts": [{"id": "a", "name": "Company", "jjwg_maps_lat_c": 50}],
+            "accounts_cstm": [
+                {
+                    "id_c": "a",
+                    "utm_source_c": "campaign",
+                    "jjwg_maps_lng_c": 30,
+                    "sold_estaff_c": True,
+                }
+            ],
+        },
+    )
+    project_relations(ctx)
+    pk = ctx.record_id("accounts", "a")
+    before = dict(LegacyRecord.objects.get(pk=pk).payload)
+    response = admin_client.get(f"/api/legacy/records/{pk}/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["fields"]["name"] == "Company"
+    assert "jjwg_maps_lat_c" not in data["fields"]
+    [part] = data["content"]
+    assert part["fields"]["sold_estaff_c"] is True
+    assert "utm_source_c" not in part["fields"]
+    assert "jjwg_maps_lng_c" not in part["fields"]
+    assert LegacyRecord.objects.get(pk=pk).payload == before
+    assert (
+        LegacyRecord.objects.get(pk=ctx.record_id("accounts_cstm", "a")).payload[
+            "utm_source_c"
+        ]
+        == "campaign"
+    )
+
+
 def test_history_api_hides_counts_search_and_foreign_rows(
     org_a,
     tmp_path,

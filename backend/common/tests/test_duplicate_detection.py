@@ -32,6 +32,88 @@ def _accounts(profile):
     return visible_accounts_qs(profile)
 
 
+@pytest.mark.parametrize(
+    "model, visible",
+    [
+        (Account, visible_accounts_qs),
+        (Contact, visible_contacts_qs),
+        (Lead, visible_leads_qs),
+    ],
+)
+class TestUnusableContactDetails:
+    @pytest.mark.parametrize(
+        "email",
+        [
+            None,
+            "",
+            "   ",
+            "-",
+            "not-an-email",
+            "no-reply@gmail.com",
+            "NO_REPLY@GMAIL.COM",
+            "noreply@acme.com",
+            "do.not.reply@acme.com",
+            "no-reply+crm@acme.com",
+            "noemail@acme.com",
+            "test@example.com",
+            "person@sub.example.org",
+            "person@sample.invalid",
+            "person@sample.test",
+        ],
+    )
+    def test_unusable_email_is_not_a_match(
+        self, org_a, admin_profile, model, visible, email
+    ):
+        model.objects.create(org=org_a, email=email)
+        assert find_duplicates(visible(admin_profile), {"email": email}) == []
+
+    @pytest.mark.parametrize(
+        "phone",
+        [
+            None,
+            "",
+            "   ",
+            "-",
+            "12345",
+            "0000000",
+            "+1 (000) 000-0000",
+            "1111111111",
+            "0123456789",
+            "1234567890",
+            "9876543210",
+        ],
+    )
+    def test_unusable_phone_is_not_a_match(
+        self, org_a, admin_profile, model, visible, phone
+    ):
+        model.objects.create(org=org_a, phone=phone)
+        assert find_duplicates(visible(admin_profile), {"phone": phone}) == []
+
+    def test_name_still_matches_without_claiming_placeholder_details_match(
+        self, org_a, admin_profile, model, visible
+    ):
+        name = (
+            {"name": "Acme"}
+            if model is Account
+            else {"first_name": "Alice", "last_name": "Smith"}
+        )
+        criteria = {**name, "email": "no-reply@gmail.com", "phone": "0000000000"}
+        record = model.objects.create(org=org_a, **criteria)
+        assert find_duplicates(visible(admin_profile), criteria) == [(record, ["name"])]
+
+    @pytest.mark.parametrize(
+        "email",
+        ["sales@acme.com", "info@gmail.com", "test@acme.com", "no-reply-team@acme.com"],
+    )
+    def test_real_mailboxes_still_match(
+        self, org_a, admin_profile, model, visible, email
+    ):
+        record = model.objects.create(org=org_a, email=email)
+        assert find_duplicates(visible(admin_profile), {"email": email.upper()}) == [
+            (record, ["email"])
+        ]
+
+
 class TestNormalisers:
     @pytest.mark.parametrize(
         "raw, expected",
@@ -195,6 +277,20 @@ class TestLeads:
 
 
 class TestAccounts:
+    def test_placeholder_matches_do_not_hide_a_real_name_match(
+        self, org_a, admin_profile
+    ):
+        real = Account.objects.create(
+            org=org_a, name="Acme", email="no-reply@gmail.com"
+        )
+        for i in range(MAX_RESULTS + 1):
+            Account.objects.create(
+                org=org_a, name=f"Other {i}", email="no-reply@gmail.com"
+            )
+        assert find_duplicates(
+            _accounts(admin_profile), {"name": "Acme", "email": "no-reply@gmail.com"}
+        ) == [(real, ["name"])]
+
     def test_legal_suffixes_and_punctuation_are_set_aside(self, org_a, admin_profile):
         inc = Account.objects.create(org=org_a, name="ACME, Inc.")
         the = Account.objects.create(org=org_a, name="The Acme LLC")

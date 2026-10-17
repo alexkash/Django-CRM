@@ -7,6 +7,7 @@ See docs/cases/tier1/custom-fields.md.
 from __future__ import annotations
 
 import pytest
+from django.apps import apps
 
 from cases.models import Case
 from common.custom_fields import validate_definition_options, validate_payload
@@ -140,6 +141,94 @@ class TestValidatePayload:
 @pytest.mark.django_db
 class TestCustomFieldDefinitionAPI:
     URL = "/api/custom-fields/"
+
+    @pytest.mark.parametrize(
+        "model_label, module, values",
+        [
+            ("accounts.Account", "accounts", {"name": "Company"}),
+            (
+                "contacts.Contact",
+                "contacts",
+                {"first_name": "Alice", "last_name": "Smith"},
+            ),
+            ("leads.Lead", "leads", {"first_name": "Alice", "last_name": "Smith"}),
+            ("opportunity.Opportunity", "opportunities", {"name": "Deal"}),
+            (
+                "tasks.Task",
+                "tasks",
+                {"title": "Task", "status": "New", "priority": "High"},
+            ),
+        ],
+    )
+    def test_native_detail_hides_imported_fields_for_mobile_consumers(
+        self, admin_client, org_a, model_label, module, values
+    ):
+        model = apps.get_model(model_label)
+        target = model._meta.object_name
+        for key in ["jjwg_maps_lat_c", "utm_source_c", "suitecrm_original_email"]:
+            CustomFieldDefinition.objects.create(
+                org=org_a, target_model=target, key=key, label=key, field_type="text"
+            )
+        record = model.objects.create(
+            org=org_a,
+            **values,
+            custom_fields={"utm_source_c": "campaign", "jjwg_maps_lat_c": "50"},
+        )
+        response = admin_client.get(f"/api/{module}/{record.pk}/")
+        assert response.status_code == 200
+        assert [d["key"] for d in response.json()["custom_field_definitions"]] == [
+            "suitecrm_original_email"
+        ]
+        record.refresh_from_db()
+        assert record.custom_fields == {
+            "utm_source_c": "campaign",
+            "jjwg_maps_lat_c": "50",
+        }
+
+    @pytest.mark.parametrize(
+        "target", ["Account", "Contact", "Lead", "Opportunity", "Case"]
+    )
+    @pytest.mark.parametrize(
+        "query", ["", "?active_only=true", "?include_counts=false"]
+    )
+    def test_imported_geodata_and_utm_fields_are_hidden_from_lists_and_totals(
+        self, admin_client, org_a, target, query
+    ):
+        hidden = [
+            "jjwg_maps_address_c",
+            "jjwg_maps_geocode_status_c",
+            "jjwg_maps_lat_c",
+            "jjwg_maps_lng_c",
+            "utm_source_c",
+            "utm_medium_c",
+            "utm_campaign_c",
+            "utm_content_c",
+            "utm_term_c",
+        ]
+        for key in hidden + ["suitecrm_original_email"]:
+            CustomFieldDefinition.objects.create(
+                org=org_a, target_model=target, key=key, label=key, field_type="text"
+            )
+        response = admin_client.get(self.URL + query)
+        assert response.status_code == 200
+        body = response.json()
+        assert [d["key"] for d in body["definitions"]] == ["suitecrm_original_email"]
+        if body["totals"] is not None:
+            assert body["totals"] == {
+                "count": 1,
+                "active": 1,
+                "models_extended": 1,
+                "required_with_gaps": 0,
+            }
+        assert CustomFieldDefinition.objects.filter(org=org_a).count() == 10
+        cleaned, errors = validate_payload(
+            target,
+            {},
+            org_a,
+            existing={"utm_source_c": "campaign", "jjwg_maps_lat_c": "50"},
+        )
+        assert not errors
+        assert cleaned == {"utm_source_c": "campaign", "jjwg_maps_lat_c": "50"}
 
     def _payload(self, **overrides):
         body = {

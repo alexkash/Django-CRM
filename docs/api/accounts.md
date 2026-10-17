@@ -158,6 +158,15 @@ clients debounce well under that.
 Matching: email, case-insensitive; the name once case, punctuation, a leading "The" and a trailing legal suffix ("Inc", "Ltd", "LLC", ...) are set aside, so "Acme" finds "ACME, Inc." but not "Acme Widgets"; the website host, ignoring scheme, "www." and path. Phone numbers match on their last ten digits (or every digit of a shorter number,
 seven at least), whatever the separators.
 
+Across accounts, contacts and leads, blank and invalid email addresses do not trigger a match.
+Neither do `no-reply`, `do-not-reply` or `no-email` mailboxes (ignoring case, dots,
+hyphens, underscores and `+` tags), or addresses on `example.com`, `example.net`,
+`example.org`, `.example`, `.invalid` or `.test` domains and their subdomains.
+Phones made of one repeated digit, or the normalized sequences `0123456789`,
+`1234567890` and `9876543210`, are also ignored. These values never appear in
+`matched_on`; a record can still match by another usable field. This applies to
+both create-form checks and saved records, including imported data, without changing stored values.
+
 `POST /api/accounts/{id}/merge/` with `{"merge_id": "<uuid>"}` merges the account named in the body into the
 one in the URL. The caller must be able to open both (either one hidden or missing is the same `404`),
 must be allowed to edit the one kept (for accounts, anyone who can open it), and must hold the delete rule on the one merged away

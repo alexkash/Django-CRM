@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.custom_fields import HIDDEN_IMPORTED_FIELD_KEYS
 from common.models import CustomFieldDefinition
 from common.permissions import HasOrgContext, is_org_admin
 from common.serializer import CustomFieldDefinitionSerializer
@@ -109,7 +110,10 @@ class CustomFieldDefinitionListCreateView(APIView):
     )
     def get(self, request, *args, **kwargs):
         org = request.profile.org
-        qs = CustomFieldDefinition.objects.filter(org=org)
+        definitions = CustomFieldDefinition.objects.filter(org=org).exclude(
+            key__in=HIDDEN_IMPORTED_FIELD_KEYS
+        )
+        qs = definitions
         target_model = request.query_params.get("target_model")
         if target_model:
             qs = qs.filter(target_model=target_model)
@@ -128,10 +132,10 @@ class CustomFieldDefinitionListCreateView(APIView):
         if request.query_params.get("include_counts") == "false":
             return Response({"definitions": rows, "totals": None})
 
-        # records_missing_value + totals are computed over the org's FULL
-        # definition set (independent of the target_model/active_only filters)
+        # records_missing_value + totals cover the org's visible definition
+        # set (independent of the target_model/active_only filters)
         # so the stat cards stay correct when the list is filtered.
-        all_defs = list(CustomFieldDefinition.objects.filter(org=org))
+        all_defs = list(definitions)
         missing_by_id = _records_missing_map(org, all_defs)
 
         for row in rows:

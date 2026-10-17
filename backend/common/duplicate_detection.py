@@ -16,11 +16,13 @@ Two halves, shared by the three modules:
 
 Matching rules, and why they are this narrow:
 
-* Email: case-insensitive equality.
+* Email: case-insensitive equality, excluding invalid addresses, no-reply /
+  no-email mailboxes and reserved example/test domains.
 * Phone: the last ten digits (or every digit of a shorter number) equal,
   whatever the separators. Matched by a regular expression in the database, so
   "+1 (202) 555-0147" finds "202.555.0147" without reading any row into Python.
-  Fewer than seven digits is not a phone number worth matching on.
+  Fewer than seven digits, repeated digits and obvious dummy sequences are
+  not phone numbers worth matching on.
 * Person name (leads, contacts): first AND last name, case-insensitive. One
   half alone matches every "John".
 * Lead company: exact, and only when the lead has no person name. Two people at
@@ -37,6 +39,8 @@ import re
 
 from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db.models import BooleanField, Q
 
 from common.validators import normalize_phone
@@ -45,6 +49,15 @@ MAX_RESULTS = 10
 
 # The shortest normalised phone number worth matching on.
 MIN_PHONE_DIGITS = 7
+
+PLACEHOLDER_EMAIL_DOMAINS = (
+    "example.com",
+    "example.net",
+    "example.org",
+    "example",
+    "invalid",
+    "test",
+)
 
 LEGAL_SUFFIXES = (
     "inc",
@@ -91,11 +104,22 @@ def account_name_core(name):
     return words
 
 
+def _matching_phone(phone):
+    digits = normalize_phone(phone)
+    if (
+        len(digits) < MIN_PHONE_DIGITS
+        or len(set(digits)) == 1
+        or digits in {"0123456789", "1234567890", "9876543210"}
+    ):
+        return ""
+    return digits
+
+
 def _phone_regex(phone):
     """A pattern matching any stored phone whose normalised form equals this
-    one's, or None when there are too few digits to match on."""
-    digits = normalize_phone(phone)
-    if len(digits) < MIN_PHONE_DIGITS:
+    one's, or None when it is blank, too short or a placeholder."""
+    digits = _matching_phone(phone)
+    if not digits:
         return None
     body = "[^0-9]*".join(digits) + "[^0-9]*$"
     # Ten digits are the tail of a number that may carry a country code, so
@@ -126,6 +150,22 @@ def _clean(value):
     return (value or "").strip()
 
 
+def _matching_email(value):
+    email = _clean(value).lower()
+    try:
+        validate_email(email)
+    except ValidationError:
+        return ""
+    local, domain = email.rsplit("@", 1)
+    mailbox = re.sub(r"[-_.]", "", local.split("+", 1)[0])
+    if mailbox in {"noreply", "donotreply", "noemail"} or any(
+        domain == suffix or domain.endswith("." + suffix)
+        for suffix in PLACEHOLDER_EMAIL_DOMAINS
+    ):
+        return ""
+    return email
+
+
 def duplicate_query(model_name, criteria):
     """The OR of every rule `criteria` supports, or None when it supports none.
 
@@ -134,7 +174,7 @@ def duplicate_query(model_name, criteria):
     ``company_name`` (leads), ``name`` and ``website`` (accounts).
     """
     q = Q()
-    email = _clean(criteria.get("email"))
+    email = _matching_email(criteria.get("email"))
     if email:
         q |= Q(email__iexact=email)
     phone = _phone_regex(criteria.get("phone"))
@@ -165,11 +205,11 @@ def duplicate_query(model_name, criteria):
 def matched_on(model_name, criteria, record):
     """Which rules paired ``record`` with ``criteria``, for the reader."""
     reasons = []
-    email = _clean(criteria.get("email")).lower()
+    email = _matching_email(criteria.get("email"))
     if email and (record.email or "").lower() == email:
         reasons.append("email")
-    phone = normalize_phone(criteria.get("phone"))
-    if len(phone) >= MIN_PHONE_DIGITS and normalize_phone(record.phone) == phone:
+    phone = _matching_phone(criteria.get("phone"))
+    if phone and normalize_phone(record.phone) == phone:
         reasons.append("phone")
     if model_name in ("lead", "contact"):
         first = _clean(criteria.get("first_name")).lower()

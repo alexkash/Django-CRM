@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.custom_fields import visible_custom_field_values
 from common.permissions import HasOrgContext, is_org_admin
 from legacy.access import read_rules, readable_record, visible_records
 from legacy.importer.files import private_root
@@ -153,10 +154,14 @@ class RecordDetail(HistoryView):
         parts = visible.filter(pk__in=content_ids).order_by("source_table", "id")[:100]
         data = dict(RecordSummary(record).data)
         data.update(
-            fields=record.payload,
+            fields=visible_custom_field_values(record.payload),
             links=RecordSummary(links, many=True).data,
             content=[
-                {"source_table": r.source_table, "fields": r.payload} for r in parts
+                {
+                    "source_table": r.source_table,
+                    "fields": visible_custom_field_values(r.payload),
+                }
+                for r in parts
             ],
             files=FileSummary(record.files.filter(org=profile.org), many=True).data,
             native=list(

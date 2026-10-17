@@ -8,6 +8,7 @@ from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from common.custom_fields import (
+    HIDDEN_IMPORTED_FIELD_KEYS,
     is_supported_target,
     validate_definition_options,
 )
@@ -454,12 +455,22 @@ class LeadCommentSerializer(serializers.ModelSerializer):
         )
 
 
+class CustomFieldDefinitionListSerializer(serializers.ListSerializer):
+    def to_representation(self, data):
+        return [
+            field
+            for field in super().to_representation(data)
+            if field["key"] not in HIDDEN_IMPORTED_FIELD_KEYS
+        ]
+
+
 class CustomFieldDefinitionSerializer(serializers.ModelSerializer):
     """Per-org custom-field definition. key/target_model/field_type are immutable
     after creation. Admins must create a new definition to change shape."""
 
     class Meta:
         model = CustomFieldDefinition
+        list_serializer_class = CustomFieldDefinitionListSerializer
         fields = (
             "id",
             "target_model",

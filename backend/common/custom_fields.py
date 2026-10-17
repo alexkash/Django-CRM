@@ -31,6 +31,29 @@ SUPPORTED_TARGETS: set[str] = {
     "Task",
 }
 
+# Imported mapping/tracking fields stay stored but are not part of the UI.
+HIDDEN_IMPORTED_FIELD_KEYS = frozenset(
+    {
+        "jjwg_maps_address_c",
+        "jjwg_maps_geocode_status_c",
+        "jjwg_maps_lat_c",
+        "jjwg_maps_lng_c",
+        "utm_source_c",
+        "utm_medium_c",
+        "utm_campaign_c",
+        "utm_content_c",
+        "utm_term_c",
+    }
+)
+
+
+def visible_custom_field_values(values):
+    return {
+        key: value
+        for key, value in values.items()
+        if key not in HIDDEN_IMPORTED_FIELD_KEYS
+    }
+
 
 def is_supported_target(target_model: str) -> bool:
     return target_model in SUPPORTED_TARGETS

@@ -166,6 +166,33 @@ def _check(client, module, **criteria):
 
 
 class TestDuplicateCheck:
+    @pytest.mark.parametrize(
+        "module, model", [("accounts", Account), ("contacts", Contact), ("leads", Lead)]
+    )
+    def test_placeholder_details_are_ignored_on_forms_and_saved_records(
+        self, admin_client, org_a, module, model
+    ):
+        names = (
+            [{"name": "First"}, {"name": "Second"}]
+            if model is Account
+            else [
+                {"first_name": "First", "last_name": "Person"},
+                {"first_name": "Second", "last_name": "Person"},
+            ]
+        )
+        first = model.objects.create(
+            org=org_a, **names[0], email="no-reply@gmail.com", phone="0000000000"
+        )
+        model.objects.create(org=org_a, **names[1], phone="0000000000")
+        response = _check(
+            admin_client, module, email="NO-REPLY@gmail.com", phone="0000000000"
+        )
+        assert response.status_code == 200
+        assert response.json()["duplicates"] == []
+        response = admin_client.get(f"/api/{module}/{first.pk}/duplicates/")
+        assert response.status_code == 200
+        assert response.json()["duplicates"] == []
+
     def test_returns_list_level_fields_only(self, admin_client, org_a):
         _contact(org_a, email="ann@x.com", phone="202 555 0147", description="secret")
         response = _check(admin_client, "contacts", email="ANN@x.com")
