@@ -94,3 +94,7 @@ as a dedicated step before the test suite. If you fork this project and add or c
 `manage.py makemigrations` yourself and commit the result. The check names the problem directly;
 without it you would find out indirectly, from a test or a request failing against a column the
 database does not have.
+
+### Ukrainian billing archives
+
+[Ukrainian invoices and service acts](billing-documents.md) store normalized signature/stamp scans and both issued PDF variants in private database binary columns. A full PostgreSQL backup must include those columns, document snapshots, act lines and per-company numbering sequences. They are not reconstructed from the current company card or a media directory. Each scan is limited to 2 MiB and each PDF variant to 10 MiB; include their storage in backup sizing. After issuing live documents, retain the schema and fix forward rather than rolling back constraints that would merge different companies' number spaces.

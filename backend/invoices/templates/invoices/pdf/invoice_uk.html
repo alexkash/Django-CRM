@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Рахунок на оплату № {{ invoice.invoice_number }}</title>
+</head>
+<body>
+    <header class="letterhead">
+        <div class="brand">
+            {% if logo %}<img src="{{ logo.url }}" alt="{{ org.company_name|default:org.name }}" class="logo">{% endif %}
+            <div>
+                <div class="company-name">{{ org.company_name|default:org.name }}</div>
+                {% if org.phone %}<div>{{ org.phone }}</div>{% endif %}
+                {% if org.email %}<div>{{ org.email }}</div>{% endif %}
+                {% if org.website %}<div>{{ org.website }}</div>{% endif %}
+            </div>
+        </div>
+        <div class="document-kind">РАХУНОК<br><span>Валюта: гривня (UAH)</span></div>
+    </header>
+
+    <h1>Рахунок на оплату № {{ invoice.invoice_number }}</h1>
+    <div class="dates">
+        від {{ invoice.issue_date|date:"d.m.Y" }}
+        {% if invoice.due_date %}<span>Сплатити до {{ invoice.due_date|date:"d.m.Y" }}</span>{% endif %}
+    </div>
+
+    <table class="parties">
+        <tr>
+            <th>Постачальник</th>
+            <td>
+                <strong>{{ org.company_name|default:org.name }}</strong>
+                {% if org.tax_id %}<div>Код / податковий номер: {{ org.tax_id }}</div>{% endif %}
+                {% if supplier_address %}<div>{{ supplier_address }}</div>{% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Платник</th>
+            <td>
+                <strong>{{ invoice.client_name }}</strong>
+                {% if client_address %}<div>{{ client_address }}</div>{% endif %}
+                {% if invoice.client_phone %}<div>Тел.: {{ invoice.client_phone }}</div>{% endif %}
+                {% if invoice.client_email %}<div>{{ invoice.client_email }}</div>{% endif %}
+            </td>
+        </tr>
+        {% if invoice.invoice_title %}<tr><th>Предмет рахунку</th><td>{{ invoice.invoice_title }}</td></tr>{% endif %}
+        {% if invoice.po_number %}<tr><th>Замовлення</th><td>{{ invoice.po_number }}</td></tr>{% endif %}
+        {% if invoice.billing_period %}<tr><th>Період</th><td>{{ invoice.billing_period }}</td></tr>{% endif %}
+    </table>
+
+    {% if terms %}
+    <section class="payment-details">
+        <h2>Реквізити та умови оплати</h2>
+        {{ terms|linebreaks }}
+    </section>
+    {% endif %}
+
+    <table class="items">
+        <thead>
+            <tr>
+                <th class="number">№</th>
+                <th>Найменування товарів / послуг</th>
+                <th class="quantity">Кількість</th>
+                <th class="money">Ціна, грн</th>
+                <th class="money">Сума, грн</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in line_items %}
+            <tr>
+                <td class="number">{{ forloop.counter }}</td>
+                <td>
+                    <strong>{{ item.name }}</strong>
+                    {% if item.description %}<div class="item-description">{{ item.description|linebreaksbr }}</div>{% endif %}
+                    {% if item.discount_amount %}<div class="item-description">Знижка за позицією: {{ item.discount_amount }}</div>{% endif %}
+                </td>
+                <td class="quantity">{{ item.quantity|floatformat:"-2g" }}</td>
+                <td class="money">{{ item.unit_price }}</td>
+                <td class="money">{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">Позиції не додано</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="totals">
+        <tr><th>Сума за позиціями</th><td>{{ subtotal }}</td></tr>
+        {% if invoice.discount_amount > 0 %}<tr><th>Знижка</th><td>-{{ discount_amount }}</td></tr>{% endif %}
+        <tr><th>Податок{% if invoice.tax_rate %} ({{ invoice.tax_rate|floatformat:"-2" }}%){% endif %}</th><td>{{ tax_amount }}</td></tr>
+        {% if invoice.shipping_amount > 0 %}<tr><th>Доставка</th><td>{{ shipping_amount }}</td></tr>{% endif %}
+        <tr class="total"><th>Всього</th><td>{{ total_amount }}</td></tr>
+        {% if invoice.amount_paid > 0 %}
+        <tr><th>Сплачено</th><td>{{ amount_paid }}</td></tr>
+        <tr class="total"><th>Залишок до сплати</th><td>{{ amount_due }}</td></tr>
+        {% endif %}
+    </table>
+
+    <section class="amount-in-words">
+        <div>Загальна сума прописом</div>
+        <strong>{{ total_in_words }}</strong>
+    </section>
+
+    <section class="payment-purpose">
+        <h2>Призначення платежу</h2>
+        <p>Оплата за рахунком № {{ invoice.invoice_number }} від {{ invoice.issue_date|date:"d.m.Y" }}.</p>
+    </section>
+    {% if notes %}<section class="notes"><h2>Примітки</h2>{{ notes|linebreaks }}</section>{% endif %}
+    {% if footer_text %}<footer>{{ footer_text|linebreaks }}</footer>{% endif %}
+</body>
+</html>

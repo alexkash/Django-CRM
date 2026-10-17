@@ -62,6 +62,13 @@
       label: 'People and access',
       items: [
         {
+          href: '/settings/legal-entities',
+          title: 'Наші компанії',
+          body: 'ФОП, ТОВ, реквізити, підписи й печатки для рахунків та актів.',
+          value: null,
+          warn: false
+        },
+        {
           href: '/team',
           title: 'Team and access',
           body: 'Who can sign in, and what their role lets them do.',

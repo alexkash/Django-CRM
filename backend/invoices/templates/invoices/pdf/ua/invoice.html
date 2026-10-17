@@ -1,0 +1,12 @@
+<!doctype html><html lang="uk"><head><meta charset="utf-8"><title>Рахунок {{ d.number }}</title></head><body>
+{% if d.draft %}<div class="draft">ЧЕРНЕТКА — документ ще не виписано</div>{% endif %}
+<header class="document-head"><div><h1>Рахунок на оплату № {{ d.number }}</h1><p class="meta">Дата: {{ d.issue_date }} · {{ d.place }}</p></div>{% if logo %}<img class="company-logo" src="billing-asset://logo" alt="{{ d.seller.legal_name }}">{% endif %}</header>
+<table class="parties"><tr><td><h2>Постачальник</h2><strong>{{ d.seller.legal_name }}</strong><p>Код: {{ d.seller.registration_code }}</p>{% if d.seller.vat_registration_number %}<p>ІПН платника ПДВ: {{ d.seller.vat_registration_number }}</p>{% endif %}<p>{{ d.seller.legal_address }}</p><p>IBAN {{ d.bank.iban }}</p><p>{{ d.bank.bank_name }}{% if d.bank.mfo %}, МФО {{ d.bank.mfo }}{% endif %}</p><p>{{ d.seller.tax_system_text }}</p><p>{{ d.seller.phone }} {{ d.seller.email }}</p></td><td><h2>Одержувач</h2><strong>{{ d.customer.legal_name }}</strong><p>Код: {{ d.customer.registration_code }}</p>{% if d.customer.vat_registration_number %}<p>ІПН платника ПДВ: {{ d.customer.vat_registration_number }}</p>{% endif %}<p>{{ d.customer.legal_address }}</p><p>Платник: {{ d.payer.legal_name }}</p><p>Код платника: {{ d.payer.registration_code }}</p><p>{{ d.payer.legal_address }}</p></td></tr></table>
+{% if d.contract_number %}<p>Договір № {{ d.contract_number }} від {{ d.contract_date }}</p>{% endif %}
+{% if d.order_reference %}<p>Підстава: {{ d.order_reference }}</p>{% endif %}
+<p>Період послуг: {{ d.service_period_start }} — {{ d.service_period_end }}</p>
+{% if d.due_date %}<p>Сплатити до: {{ d.due_date }}</p>{% endif %}
+{% include 'invoices/pdf/ua/lines.html' %}
+{% if d.notes %}<p>{{ d.notes|linebreaksbr }}</p>{% endif %}{% if d.terms %}<p>{{ d.terms|linebreaksbr }}</p>{% endif %}
+<table class="signatures"><tr><td><h2>Виписав(ла)</h2>{% include 'invoices/pdf/ua/seller-signature.html' %}</td><td></td></tr></table>
+</body></html>

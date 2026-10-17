@@ -81,8 +81,9 @@ class IssuedLineAdminMixin:
     document_field = ""
 
     def _issued(self, line):
-        return line is not None and issued_lock_message(
-            getattr(line, self.document_field)
+        document = getattr(line, self.document_field) if line else None
+        return document is not None and (
+            getattr(document, "issuer_id", None) or issued_lock_message(document)
         )
 
     def has_change_permission(self, request, obj=None):
@@ -103,7 +104,12 @@ class IssuedLineAdminMixin:
         class Form(base):
             def clean(self):
                 cleaned = super().clean()
-                message = issued_lock_message(cleaned.get(document_field))
+                document = cleaned.get(document_field)
+                message = (
+                    "Use the billing workflow"
+                    if getattr(document, "issuer_id", None)
+                    else issued_lock_message(document)
+                )
                 if message:
                     raise forms.ValidationError(message)
                 return cleaned
@@ -134,8 +140,27 @@ class PaymentInline(admin.TabularInline):
     fields = ("amount", "payment_date", "payment_method", "reference_number", "notes")
 
 
+class UAInvoiceAdminMixin:
+    def has_change_permission(self, request, obj=None):
+        return not (obj and obj.issuer_id) and super().has_change_permission(
+            request, obj
+        )
+
+    def has_delete_permission(self, request, obj=None):
+        return not (obj and obj.issuer_id) and super().has_delete_permission(
+            request, obj
+        )
+
+    def delete_queryset(self, request, queryset):
+        from django.core.exceptions import PermissionDenied
+
+        if queryset.filter(issuer__isnull=False).exists():
+            raise PermissionDenied("Use the billing workflow for Ukrainian documents")
+        return super().delete_queryset(request, queryset)
+
+
 @admin.register(Invoice)
-class InvoiceAdmin(IssuedAmountsReadOnlyMixin, admin.ModelAdmin):
+class InvoiceAdmin(UAInvoiceAdminMixin, IssuedAmountsReadOnlyMixin, admin.ModelAdmin):
     amount_fields = INVOICE_AMOUNT_FIELDS
     list_display = (
         "invoice_number",

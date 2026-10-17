@@ -105,6 +105,7 @@
           count: 'invoices',
           termKey: 'invoice.plural'
         },
+        { href: '/invoices/acts', label: 'Акти', icon: Receipt },
         { href: '/timesheet', label: 'Timesheet', icon: Clock }
       ]
     },
